@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-<addon id="plugin.video.tvpgo" name="TVP GO" version="1.0.0" provider-name="Kodi-PL">
+<?xml version="1.0.1" encoding="UTF-8" standalone="yes" ?>
+<addon id="plugin.video.tvpgo" name="TVP GO" version="1.0.1" provider-name="Kodi-PL">
 <requires>
 	<import addon="script.module.requests" />
 	<import addon="script.module.inputstreamhelper" />
@@ -29,7 +29,10 @@
 		<screenshot>resources/screenshot-01.jpg</screenshot>
 		<screenshot>resources/screenshot-02.jpg</screenshot>
 	</assets>
-	<news>v1.0 (2022-02-17)
+	<news>v1.0.1 (2022-02-17)
+- Updated channel name format.
+
+v1.0.0 (2022-02-17)
 - Initial version.
 </news>
 	<reuselanguageinvoker>true</reuselanguageinvoker>

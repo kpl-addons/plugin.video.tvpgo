@@ -70,7 +70,8 @@ def channelArrayGen():
     ar_chan = []
     for c in ch_data:
         ch_code = c['code']
-        ch_name = c['name']
+        ch_name = c['name'].replace('EPG - ', '')
+
         if ch_code == '':
             ch_id = c['id']
             ch_img = c['image_square']['url'].replace('{width}','1000').replace('{height}','500')
@@ -83,7 +84,6 @@ def channelArrayGen():
 def channels_gen():
     channels = channelArrayGen()
     for ch in channels:
-        ch[1] = ch[1].replace('EPG - ', '')
         li = xbmcgui.ListItem(ch[1])
         li.setProperty("IsPlayable", 'true')
         li.setInfo(type='video', infoLabels={'title': ch[1],'sorttitle': ch[1],'plot': ''})
@@ -153,15 +153,15 @@ def play(chCode, id, replay=False, keepBeginTime=True):
         
     for s in streams:
         if (s['mimeType']=='application/dash+xml'):
-            url_stream=s['url']
+            url_stream = s['url']
             PROTOCOL = 'mpd'
             mimeType = 'application/xml+dash'
 
         elif (s['mimeType']=='application/x-mpegurl'):
-            url_stream=s['url']
+            url_stream = s['url']
 
         else:
-            url_stream=s['url']
+            url_stream = s['url']
             mimeType = 'video/mp2t'
         
         break
@@ -209,7 +209,7 @@ def replayChannelsGen():
         li.setInfo(type='video', infoLabels={'title': ch[0],'sorttitle': ch[0],'plot': ''})
 
         img = [l[2] for l in array if l[1] == ch[0]][0]
-        img = img if img else ''
+        img = img if img else icon
 
         if img:
             li.setArt({'thumb': img, 'poster': img, 'banner': banner, 'icon': icon, 'fanart': fanart})
