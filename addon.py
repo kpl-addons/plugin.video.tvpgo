@@ -190,10 +190,10 @@ def play(chCode, chId, replay=False, keepBeginTime=True):
     for x in ordered_dict.items():
         lst.append(x[-1]['protocol'].upper() + ', ' + x[-1]['mimeType'])
 
-    #if addon.getSetting('stream_selector') == 'true':
-    res = xbmcgui.Dialog().select('TVP GO - Wybierz strumień', lst)
-    #else:
-        #res = 0
+    if len(lst) > 1:
+        res = xbmcgui.Dialog().select('TVP GO - Wybierz strumień', lst)
+    else:
+        res = 0
 
     if res >= 0:
         get_value = [value for key, value in ordered_dict.items()][res]
