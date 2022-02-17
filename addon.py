@@ -87,7 +87,10 @@ def channels_gen():
         li = xbmcgui.ListItem(ch[1])
         li.setProperty("IsPlayable", 'true')
         li.setInfo(type='video', infoLabels={'title': ch[1],'sorttitle': ch[1],'plot': ''})
-        li.setArt({'thumb': ch[2], 'poster': ch[2], 'banner': ch[2], 'icon': ch[2], 'fanart': ''})
+        if ch[2]:
+            li.setArt({'thumb': ch[2], 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+        else:
+            li.setArt({'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
         url_ch = build_url({'mode':'live','action':'play','chCode':ch[0],'chID':ch[3]})
         xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=False)
     xbmcplugin.endOfDirectory(addon_handle)
@@ -125,6 +128,7 @@ def generateBeginTimeFromTimeDelta(timeDeltaInMinutes):
     return utc_begin_time_object.strftime(time_format_pattern)
 
 def play(chCode, id, replay=False, keepBeginTime=True):
+    from collections import OrderedDict
     streams = []
     url_stream = None
 
@@ -135,7 +139,7 @@ def play(chCode, id, replay=False, keepBeginTime=True):
         data = '{"operationName":null,"variables":{"stationCode":"'+chCode+'"},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"0b9649840619e548b01c33ae4bba6027f86eac5c48279adc04e9ac2533781e6b"}},"query":"query ($stationCode: String!) {\\n  currentProgramAsLive(stationCode: $stationCode) {\\n    id\\n    title\\n    subtitle\\n    date_start\\n    date_end\\n    date_current\\n    description\\n    description_long\\n    description_akpa_long\\n    description_akpa_medium\\n    description_akpa\\n    plrating\\n    npvr\\n    formats {\\n      mimeType\\n      url\\n      __typename\\n    }\\n    __typename\\n  }\\n}"}'
         jsdata = json.loads(data)
         response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=jsdata)
-        if json.loads(response.text)['data']['currentProgramAsLive'] is not None:
+        if json.loads(response.text).get('data', None).get('currentProgramAsLive', None) is not None:
             streams = json.loads(response.text)['data']['currentProgramAsLive']['formats']
         else:
             anyProgramme = replayProgramsArrayGen(chCode, getDate(int(time.time())))[0]
@@ -150,21 +154,38 @@ def play(chCode, id, replay=False, keepBeginTime=True):
 
     PROTOCOL = 'hls'
     mimeType = 'application/x-mpegURL'
+
+    play_urls = {}
+
+    print('TEST44444444444444444')
         
     for s in streams:
-        if (s['mimeType']=='application/dash+xml'):
-            url_stream = s['url']
+        if (s['mimeType'] == 'application/dash+xml'):
+            url = s['url']
             PROTOCOL = 'mpd'
             mimeType = 'application/xml+dash'
+            play_urls.update({1: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
 
-        elif (s['mimeType']=='application/x-mpegurl'):
-            url_stream = s['url']
+
+        elif (s['mimeType'] == 'application/x-mpegurl'):
+            url = s['url']
+            mimeType = 'application/x-mpegURL'
+            play_urls.update({2: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
 
         else:
-            url_stream = s['url']
+            url = s['url']
             mimeType = 'video/mp2t'
-        
-        break
+            play_urls.update({3: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
+
+
+    ordered_dict = OrderedDict(sorted(play_urls.items(), key=lambda x: x[0]))
+
+    get_value = [value for key, value in ordered_dict.items()][0]
+
+    url_stream = get_value['url']
+    mimeType = get_value['mimeType']
+    PROTOCOL = get_value['protocol']
+
 
     if not replay:
         url_stream = applyTimeShift(url_stream, keepBeginTime=keepBeginTime)
@@ -312,6 +333,7 @@ if mode:
     if mode == 'live':
         if action == 'getChannels':
             channels_gen()
+
         if action == 'play':
             channel_code = params.get('chCode', '')
             channel_id = params.get('chID', '')
