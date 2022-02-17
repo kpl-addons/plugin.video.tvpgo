@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings> 
-    <category label="Ustawienia cofania">
-        <setting label="Format cofania kanałów" type="lsep"/>
-        <setting label="Cofaj programy" id="timeshift_type" type="select" values="Do początku aktualnej audycji|O stałą wartość" default="Do początku aktualnej audycji"/>
-        <setting label="Wartość stałego cofania (jeśli wybrano stałą wartość cofania)" type="lsep"/>
-        <setting label="Cofaj programy o ... minut" id="timeshift_delta_value" type="number" enable="eq(-2,1)"/>
-    </category>
-    <category label="Kreator listy m3u">
+<!-- Początek sekcji dodanych przez @m1992: -->
+	<category label="Ustawienia cofania">
+		<setting label="Format cofania kanałów" type="lsep"/>
+	    <setting label="Cofaj programy" id="timeshift_type" type="select" values="Do początku aktualnej audycji|O stałą wartość" default="Do początku aktualnej audycji"/>
+		<setting label="Wartość stałego cofania (jeśli wybrano stałą wartość cofania)" type="lsep"/>
+		<setting label="Cofaj programy o ... minut" id="timeshift_delta_value" type="number" enable="eq(-2,1)"/>
+	</category>
+<!-- Koniec sekcji dodanych przez @m1992. -->
+	 <category label="Kreator listy m3u">
         <setting label="Lista m3u (Nazwa Pliku oraz Katalog Docelowy)" type="lsep"/>
         <setting label="Nazwa" type="text" id="fname" default="iptv.m3u"/>
         <setting label="Katalog" type="folder" id="path_m3u" source="auto" option="writeable"/>
