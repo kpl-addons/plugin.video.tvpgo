@@ -65,23 +65,27 @@ def main_menu():
 
 
 def channelArrayGen():
-    data = '{"operationName":null,"variables":{"categoryId":null},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"5c29325c442c94a4004432d70f94e336b8c258801fe16946875a873e818c8aca"}},"query":"query ($categoryId: String) {\\n  getLandingPageVideos(categoryId: $categoryId) {\\n    type\\n    title\\n    elements {\\n      id\\n      title\\n      subtitle\\n      type\\n      img {\\n        hbbtv\\n        image\\n        website_holder_16x9\\n        video_holder_16x9\\n        __typename\\n      }\\n      broadcast_start_ts\\n      broadcast_end_ts\\n      sportType\\n      label {\\n        type\\n        text\\n        __typename\\n      }\\n      stats {\\n        video_count\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n  getStationsForMainpage {\\n    items {\\n      id\\n      name\\n      code\\n      image_square {\\n        url\\n        __typename\\n      }\\n      background_color\\n      isNativeChanel\\n      __typename\\n    }\\n    __typename\\n  }\\n}"}'
-    jsdata = json.loads(data)
-    response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=jsdata)
-    ch_data = json.loads(response.text)['data']['getStationsForMainpage']['items']
-    ar_chan = []
-    for c in ch_data:
-        ch_code = c['code']
-        ch_name = c['name'].replace('EPG - ', '')
+    try:
+        data = '{"operationName":null,"variables":{"categoryId":null},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"5c29325c442c94a4004432d70f94e336b8c258801fe16946875a873e818c8aca"}},"query":"query ($categoryId: String) {\\n  getLandingPageVideos(categoryId: $categoryId) {\\n    type\\n    title\\n    elements {\\n      id\\n      title\\n      subtitle\\n      type\\n      img {\\n        hbbtv\\n        image\\n        website_holder_16x9\\n        video_holder_16x9\\n        __typename\\n      }\\n      broadcast_start_ts\\n      broadcast_end_ts\\n      sportType\\n      label {\\n        type\\n        text\\n        __typename\\n      }\\n      stats {\\n        video_count\\n        __typename\\n      }\\n      __typename\\n    }\\n    __typename\\n  }\\n  getStationsForMainpage {\\n    items {\\n      id\\n      name\\n      code\\n      image_square {\\n        url\\n        __typename\\n      }\\n      background_color\\n      isNativeChanel\\n      __typename\\n    }\\n    __typename\\n  }\\n}"}'
+        jsdata = json.loads(data)
+        response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=jsdata)
+        ch_data = json.loads(response.text)['data']['getStationsForMainpage']['items']
+        ar_chan = []
+        for c in ch_data:
+            ch_code = c['code']
+            ch_name = c['name'].replace('EPG - ', '')
 
-        if ch_code == '':
-            ch_id = c['id']
-            ch_img = c['image_square']['url'].replace('{width}','1000').replace('{height}','500')
-        else:
-            ch_id = ''
-            ch_img = c['image_square']['url'].replace('{width}','140').replace('{height}','140')
-        ar_chan.append([ch_code,ch_name,ch_img,ch_id])
-    return ar_chan
+            if ch_code == '':
+                ch_id = c['id']
+                ch_img = c['image_square']['url'].replace('{width}','1000').replace('{height}','500')
+            else:
+                ch_id = ''
+                ch_img = c['image_square']['url'].replace('{width}','140').replace('{height}','140')
+            ar_chan.append([ch_code, ch_name, ch_img, ch_id])
+        return ar_chan
+    
+    except Exception as ex:
+        xbmc.log('TVP GO channelArrayGen Exception: {}'.format(ex), level=0)
     
 def channels_gen():
     channels = channelArrayGen()
@@ -129,25 +133,35 @@ def generateBeginTimeFromTimeDelta(timeDeltaInMinutes):
     time_format_pattern = '%Y%m%dT%H%M%S'
     return utc_begin_time_object.strftime(time_format_pattern)
 
-def getStream(chCode, chId, replay=False, keepBeginTime=True):
-    streams = []
-    play_urls = {}
+def getStreamOfType(streams, mimeType):
+    for s in streams:
+        if (s['mimeType'] == mimeType and not ('mobile' in s['url'])):
+            url_stream = s['url']
+            break
 
-    url_stream = None
+    return url_stream
 
-    if replay:
-        streams = getReplayProgramStreams(chCode, chId)
+def getProgram(chCode, progID):
+    streams = getReplayProgramStreams(chCode, progID)
+    url_stream = getStreamOfType(streams, 'application/x-mpegurl')
+    play(url_stream, 'hls', 'application/x-mpegurl')
 
-    elif chCode != '':
+def getStream(chCode, chId):
+    if chCode != '':
         data = '{"operationName":null,"variables":{"stationCode":"'+chCode+'"},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"0b9649840619e548b01c33ae4bba6027f86eac5c48279adc04e9ac2533781e6b"}},"query":"query ($stationCode: String!) {\\n  currentProgramAsLive(stationCode: $stationCode) {\\n    id\\n    title\\n    subtitle\\n    date_start\\n    date_end\\n    date_current\\n    description\\n    description_long\\n    description_akpa_long\\n    description_akpa_medium\\n    description_akpa\\n    plrating\\n    npvr\\n    formats {\\n      mimeType\\n      url\\n      __typename\\n    }\\n    __typename\\n  }\\n}"}'
         jsdata = json.loads(data)
         response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=jsdata)
-        if json.loads(response.text).get('data', None).get('currentProgramAsLive', None) is not None:
+        if json.loads(response.text)['data']['currentProgramAsLive'] is not None:
             streams = json.loads(response.text)['data']['currentProgramAsLive']['formats']
+            url_stream = getStreamOfType(streams, 'application/dash+xml')
+            url_stream = applyTimeShift(url_stream)
+            play(url_stream, 'mpd', 'application/xml+dash')
         else:
             anyProgramme = replayProgramsArrayGen(chCode, getDate(int(time.time())))[0]
             streams = getReplayProgramStreams(chCode, anyProgramme[0])
-            keepBeginTime = False
+            url_stream = getStreamOfType(streams, 'application/dash+xml')
+            url_stream = applyTimeShift(url_stream, False)
+            play(url_stream, 'mpd', 'application/xml+dash')
 
     else:
         data = '{"operationName":null,"variables":{"liveId":"'+chId+'"},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"f2fd34978dc0aea320ba2567f96aa72a184ca2d1e55b2a16dc0915bd03b54fb3"}},"query":"query ($liveId: String!) {\\n  getLive(liveId: $liveId) {\\n    error\\n    data {\\n      type\\n      title\\n      subtitle\\n      lead\\n      label {\\n        type\\n        text\\n        __typename\\n      }\\n      src\\n      vast_url\\n      duration_min\\n      subtitles {\\n        src\\n        autoDesc\\n        lang\\n        text\\n        __typename\\n      }\\n      is_live\\n      formats {\\n        mimeType\\n        totalBitrate\\n        videoBitrate\\n        audioBitrate\\n        adaptive\\n        url\\n        downloadable\\n        __typename\\n      }\\n      web_url\\n      __typename\\n    }\\n    __typename\\n  }\\n}"}'
@@ -155,70 +169,24 @@ def getStream(chCode, chId, replay=False, keepBeginTime=True):
         response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=jsdata)
         streams = json.loads(response.text)['data']['getLive']['data'][0]['formats']
 
-    for s in streams:
-        if (s['mimeType'] == 'application/dash+xml') and not ('mobile' in s['url']):
-            url = s['url']
-            PROTOCOL = 'mpd'
-            mimeType = 'application/xml+dash'
-            play_urls.update({1: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL, 'mobile': 'false'}})
+        url_stream = getStreamOfType(streams, 'application/x-mpegurl')
+        
+        if 'material_niedostepny' in url_stream:
+            xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
+            return
 
-        elif (s['mimeType'] == 'application/dash+xml') and ('mobile' in s['url']):
-            url = s['url']
-            PROTOCOL = 'mpd'
-            mimeType = 'application/xml+dash'
-            play_urls.update({4: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL, 'mobile': 'true'}})
-
-        elif (s['mimeType'] == 'application/x-mpegurl') and not ('mobile' in s['url']):
-            url = s['url']
-            PROTOCOL = 'hls'
-            mimeType = 'application/x-mpegURL'
-            play_urls.update({2: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL, 'mobile': 'false'}})
-
-        elif (s['mimeType'] == 'application/x-mpegurl') and ('mobile' in s['url']):
-            url = s['url']
-            PROTOCOL = 'hls'
-            mimeType = 'application/x-mpegURL'
-            play_urls.update({5: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL, 'mobile': 'false'}})
-
-        else:
-            if ('mobile' not in s['url']):
-                url = s['url']
-                PROTOCOL = 'hls'
-                mimeType = 'video/mp2t'
-                play_urls.update({3: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL, 'mobile': 'false'}})
-
-        break
-
-    ordered_dict = OrderedDict(sorted(play_urls.items()))
-
-    lst = []
-
-    for x in ordered_dict.items():
-        headers  = {
-            'User-Agent' : UA
+        headers = {
+            'User-Agent' : UA,
         }
 
-        response = requests.get(x[-1]['url'], headers=headers, verify=False, timeout=3)
+        response = requests.get(url_stream, headers=headers, verify=False, timeout=3)
         status = response.status_code
 
-        if status < 300:
-            lst.append(x[-1]['url'])
+        if status < 400:
+            play(url_stream, 'hls', 'application/x-mpegurl')
 
-    if len(lst) > 0:
-        url_stream = [x for x in lst][0]
-
-        if url_stream is not None:
-            if 'material_niedostepny' in url_stream:
-                xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
-                return
-
-            if not replay and chCode != '':
-                url_stream = applyTimeShift(url_stream, keepBeginTime=keepBeginTime)
-
-            play(url_stream, PROTOCOL, mimeType)
-    else:
-        xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
-        return
+        else:
+            return
 
 def play(url_stream, PROTOCOL, mimeType):
     DRM = 'com.widevine.alpha'
@@ -228,7 +196,7 @@ def play(url_stream, PROTOCOL, mimeType):
     is_helper = inputstreamhelper.Helper(PROTOCOL, drm=DRM)
     if is_helper.check_inputstream():
         play_item = xbmcgui.ListItem(path=url_stream)
-        #play_item.setMimeType(mimeType)
+        play_item.setMimeType(mimeType)
         play_item.setContentLookup(False)
         if sys.version_info >= (3,0,0):
             play_item.setProperty('inputstream', is_helper.inputstream_addon)
@@ -240,7 +208,6 @@ def play(url_stream, PROTOCOL, mimeType):
         play_item.setProperty("IsPlayable", "true")
         play_item.setProperty('inputstream.adaptive.stream_headers', 'Referer: https://tvpstream.vod.tvp.pl/&User-Agent='+quote(UA))
         play_item.setProperty('inputstream.adaptive.manifest_type', PROTOCOL)
-        #play_item.setProperty('ForceResolvePlugin', 'true')
 
         xbmcplugin.setResolvedUrl(addon_handle, True, listitem=play_item)
 
@@ -335,11 +302,16 @@ def replayProgramsGen(chCode,date):
     xbmcplugin.endOfDirectory(addon_handle)
 
 def getReplayProgramStreams(chCode, progID):
-    data = '{"extensions":{"persistedQuery":{"sha256Hash": "52d98fa9bb2b66075e8d230809fd5d991d16fa6a97719b2b4984797f5a506c4a","version": 1}},"operationName": null,"query": "query ($programId: String!, $stationCode: String!) {\\n  programByRecordId(programId: $programId, stationCode: $stationCode) {\\n    id\\n    title\\n    programId\\n    program_title\\n    subtitle\\n    date_start\\n    date_end\\n    date_current\\n    description\\n    description_long\\n    description_akpa_long\\n    description_akpa_medium\\n    description_akpa\\n    plrating\\n    formats {\\n      mimeType\\n      url\\n      __typename\\n    }\\n    __typename\\n  }\\n}","variables": {"programId":"'+progID+'","stationCode": "'+chCode+'"}}'
-    jsdata = json.loads(data)
-    response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql',json=jsdata)
-    streams = json.loads(response.text)['data']['programByRecordId']['formats']
-    return streams
+    try:
+        data = '{"extensions":{"persistedQuery":{"sha256Hash": "52d98fa9bb2b66075e8d230809fd5d991d16fa6a97719b2b4984797f5a506c4a","version": 1}},"operationName": null,"query": "query ($programId: String!, $stationCode: String!) {\\n  programByRecordId(programId: $programId, stationCode: $stationCode) {\\n    id\\n    title\\n    programId\\n    program_title\\n    subtitle\\n    date_start\\n    date_end\\n    date_current\\n    description\\n    description_long\\n    description_akpa_long\\n    description_akpa_medium\\n    description_akpa\\n    plrating\\n    formats {\\n      mimeType\\n      url\\n      __typename\\n    }\\n    __typename\\n  }\\n}","variables": {"programId":"'+progID+'","stationCode": "'+chCode+'"}}'
+        jsdata = json.loads(data)
+        response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql',json=jsdata)
+        streams = json.loads(response.text)['data']['programByRecordId']['formats']
+
+        return streams
+
+    except Exception as ex:
+        xbmc.log('TVP GO getReplayProgramStreams Exception: {}'.format(ex), level=0)
             
 def generate_m3u(c):
     if file_name == '' or path_m3u == '':
@@ -373,7 +345,7 @@ if mode:
         if action == 'play':
             channel_code = params.get('chCode', '')
             channel_id = params.get('chID', '')
-            getStream(channel_code,channel_id)
+            getStream(channel_code, channel_id)
 
     if mode == 'replay':
         if action == 'getChannels':
@@ -384,17 +356,17 @@ if mode:
         if action == 'prog':
             channel_code = params.get('chCode', '')
             date = params.get('date', '')
-            replayProgramsGen(channel_code,date)
+            replayProgramsGen(channel_code, date)
         if action == 'play':
             channel_code = params.get('chCode', '')
             program_id = params.get('progID', '')
             date = params.get('date', '')
-            getStream(channel_code,program_id, replay=True)
+            getProgram(channel_code, program_id)
 
     if mode == 'list':
         channel_code = params.get('chCode', '')
         channel_id = params.get('chID', '')
-        getStream(channel_code,channel_id)
+        getStream(channel_code, channel_id)
         
 else:
     if not action:
