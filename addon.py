@@ -206,9 +206,13 @@ def getStreamOfType(streams, mimeType):
     return url_stream
 
 def getProgram(chCode, progID):
-    streams = getReplayProgramStreams(chCode, progID)
-    url_stream = getStreamOfType(streams, 'application/x-mpegurl')
-    play(url_stream, 'hls', 'application/x-mpegurl')
+    try:
+        streams = getReplayProgramStreams(chCode, progID)
+        url_stream = getStreamOfType(streams, 'application/x-mpegurl')
+        play(url_stream, 'hls', 'application/x-mpegurl')
+
+    except Exception as ex:
+        xbmc.log('TVP GO getProgram Exception: {}'.format(ex), level=0)
 
 def getStream(chCode, chId):
     if chCode != '':
@@ -592,7 +596,7 @@ def replayProgramsArrayGen(chCode, date):
             pTitle = '['+hm(p['date_start'])+'-'+hm(p['date_end'])+'] '+p['title']
             pDescr = p['description']
             ar_prog.append([pID, chCode, pTitle, pDescr])
-            
+
     return ar_prog
     
 def replayProgramsGen(chCode,date):
