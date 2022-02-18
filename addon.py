@@ -215,137 +215,141 @@ def getProgram(chCode, progID):
         xbmc.log('TVP GO getProgram Exception: {}'.format(ex), level=0)
 
 def getStream(chCode, chId):
-    if chCode != '':
-        data = {
-            'operationName': None,
-            'variables': {
-                'stationCode': '{0}'.format(chCode),
-            },
-            'extensions': {
-                'persistedQuery': {
-                    'version': 1,
-                    'sha256Hash': '0b9649840619e548b01c33ae4bba6027f86eac5c48279adc04e9ac2533781e6b',
+    try:
+        if chCode != '':
+            data = {
+                'operationName': None,
+                'variables': {
+                    'stationCode': '{0}'.format(chCode),
                 },
-            
-            'query': """
-        query ($stationCode: String!) {
-          currentProgramAsLive(stationCode: $stationCode) {
-            id
-            title
-            subtitle
-            date_start
-            date_end
-            date_current
-            description
-            description_long
-            description_akpa_long
-            description_akpa_medium
-            description_akpa
-            plrating
-            npvr
-            formats {
-              mimeType
-              url
-              __typename
+                'extensions': {
+                    'persistedQuery': {
+                        'version': 1,
+                        'sha256Hash': '0b9649840619e548b01c33ae4bba6027f86eac5c48279adc04e9ac2533781e6b',
+                    },
+                
+                'query': """
+            query ($stationCode: String!) {
+              currentProgramAsLive(stationCode: $stationCode) {
+                id
+                title
+                subtitle
+                date_start
+                date_end
+                date_current
+                description
+                description_long
+                description_akpa_long
+                description_akpa_medium
+                description_akpa
+                plrating
+                npvr
+                formats {
+                  mimeType
+                  url
+                  __typename
+                }
+                __typename
+              }
             }
-            __typename
-          }
-        }
-        }""" 
-        }
-        }
-
-        response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
-
-        if response['data']['currentProgramAsLive'] is not None:
-            streams = response['data']['currentProgramAsLive']['formats']
-            url_stream = getStreamOfType(streams, 'application/dash+xml')
-            url_stream = applyTimeShift(url_stream)
-            play(url_stream, 'mpd', 'application/xml+dash')
-        else:
-            anyProgramme = replayProgramsArrayGen(chCode, getDate(int(time.time())))[0]
-            streams = getReplayProgramStreams(chCode, anyProgramme[0])
-            url_stream = getStreamOfType(streams, 'application/dash+xml')
-            url_stream = applyTimeShift(url_stream, False)
-            play(url_stream, 'mpd', 'application/xml+dash')
-
-    else:
-        data = {
-            'operationName': None,
-            'variables': {
-                'liveId': '{0}'.format(chId),
-            },
-            'extensions': {
-                'persistedQuery': {
-                    'version': 1,
-                    'sha256Hash': 'f2fd34978dc0aea320ba2567f96aa72a184ca2d1e55b2a16dc0915bd03b54fb3',
-                },
-            
-            'query': """
-        query ($liveId: String!) {
-          getLive(liveId: $liveId) {
-            error
-            data {
-              type
-              title
-              subtitle
-              lead
-              label {
-                type
-                text
-                __typename
-              }
-              src
-              vast_url
-              duration_min
-              subtitles {
-                src
-                autoDesc
-                lang
-                text
-                __typename
-              }
-              is_live
-              formats {
-                mimeType
-                totalBitrate
-                videoBitrate
-                audioBitrate
-                adaptive
-                url
-                downloadable
-                __typename
-              }
-              web_url
-              __typename
+            }""" 
             }
-            __typename
-          }
-        }""" 
-        }
-        }
+            }
 
-        response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
-        streams = response['data']['getLive']['data'][0]['formats']
+            response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
 
-        url_stream = getStreamOfType(streams, 'application/x-mpegurl')
-        
-        if 'material_niedostepny' in url_stream:
-            xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
-            return
-
-        headers = {
-            'User-Agent' : UA,
-        }
-
-        response = requests.get(url_stream, headers=headers, verify=False, timeout=3)
-        status = response.status_code
-
-        if status < 400:
-            play(url_stream, 'hls', 'application/x-mpegurl')
+            if response['data']['currentProgramAsLive'] is not None:
+                streams = response['data']['currentProgramAsLive']['formats']
+                url_stream = getStreamOfType(streams, 'application/dash+xml')
+                url_stream = applyTimeShift(url_stream)
+                play(url_stream, 'mpd', 'application/xml+dash')
+            else:
+                anyProgramme = replayProgramsArrayGen(chCode, getDate(int(time.time())))[0]
+                streams = getReplayProgramStreams(chCode, anyProgramme[0])
+                url_stream = getStreamOfType(streams, 'application/dash+xml')
+                url_stream = applyTimeShift(url_stream, False)
+                play(url_stream, 'mpd', 'application/xml+dash')
 
         else:
-            return
+            data = {
+                'operationName': None,
+                'variables': {
+                    'liveId': '{0}'.format(chId),
+                },
+                'extensions': {
+                    'persistedQuery': {
+                        'version': 1,
+                        'sha256Hash': 'f2fd34978dc0aea320ba2567f96aa72a184ca2d1e55b2a16dc0915bd03b54fb3',
+                    },
+                
+                'query': """
+            query ($liveId: String!) {
+              getLive(liveId: $liveId) {
+                error
+                data {
+                  type
+                  title
+                  subtitle
+                  lead
+                  label {
+                    type
+                    text
+                    __typename
+                  }
+                  src
+                  vast_url
+                  duration_min
+                  subtitles {
+                    src
+                    autoDesc
+                    lang
+                    text
+                    __typename
+                  }
+                  is_live
+                  formats {
+                    mimeType
+                    totalBitrate
+                    videoBitrate
+                    audioBitrate
+                    adaptive
+                    url
+                    downloadable
+                    __typename
+                  }
+                  web_url
+                  __typename
+                }
+                __typename
+              }
+            }""" 
+            }
+            }
+
+            response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
+            streams = response['data']['getLive']['data'][0]['formats']
+
+            url_stream = getStreamOfType(streams, 'application/x-mpegurl')
+            
+            if 'material_niedostepny' in url_stream:
+                xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
+                return
+
+            headers = {
+                'User-Agent' : UA,
+            }
+
+            response = requests.get(url_stream, headers=headers, verify=False, timeout=3)
+            status = response.status_code
+
+            if status < 400:
+                play(url_stream, 'hls', 'application/x-mpegurl')
+
+            else:
+                return
+
+    except Exception as ex:
+        xbmc.log('TVP GO getStream Exception: {}'.format(ex), level=0)
 
 def play(url_stream, PROTOCOL, mimeType):
     DRM = 'com.widevine.alpha'
@@ -371,42 +375,46 @@ def play(url_stream, PROTOCOL, mimeType):
         xbmcplugin.setResolvedUrl(addon_handle, True, listitem=play_item)
 
 def replayChannelsArrayGen(): 
-    data = {
-        'operationName': None,
-        'variables': {},
-        'extensions': {
-            'persistedQuery': {
-                'version': 1,
-                'sha256Hash': '18a5c6b18b6443bd317f69ff092b6d7068733640159eaf216c35f583ea73ac23',
-            },
-        
-        'query': """
-    {
-      getStations {
-        items {
-          name
-          code
-          image_square {
-            url
+    try:
+        data = {
+            'operationName': None,
+            'variables': {},
+            'extensions': {
+                'persistedQuery': {
+                    'version': 1,
+                    'sha256Hash': '18a5c6b18b6443bd317f69ff092b6d7068733640159eaf216c35f583ea73ac23',
+                },
+            
+            'query': """
+        {
+          getStations {
+            items {
+              name
+              code
+              image_square {
+                url
+                __typename
+              }
+              background_color
+              __typename
+            }
             __typename
           }
-          background_color
-          __typename
+        }""" 
         }
-        __typename
-      }
-    }""" 
-    }
-    }
+        }
 
-    response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
-    ch_data = response['data']['getStations']['items']
-    ar_chan = []
-    for ch in ch_data:
-        chName = ch['name']
-        chCode = ch['code']
-        ar_chan.append([chName,chCode])
-    return ar_chan
+        response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
+        ch_data = response['data']['getStations']['items']
+        ar_chan = []
+        for ch in ch_data:
+            chName = ch['name']
+            chCode = ch['code']
+            ar_chan.append([chName,chCode])
+        return ar_chan
+
+    except Exception as ex:
+        xbmc.log('TVP GO replayChannelsArrayGen Exception: {}'.format(ex), level=0)
     
 def replayChannelsGen():
     array = channelArrayGen()
@@ -461,6 +469,7 @@ def replayProgramsArrayGen(chCode, date):
         'operationName': None,
         'variables': {
             'station_code': '{0}'.format(chCode),
+            'date': '{0}'.format(date),
             'categorytvp': '',
         },
         'extensions': {
