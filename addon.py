@@ -161,18 +161,24 @@ def play(chCode, chId, replay=False, keepBeginTime=True):
             PROTOCOL = 'mpd'
             mimeType = 'application/xml+dash'
             play_urls.update({1: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
+            if 'mobile' in s['url']:
+                play_urls.update({4: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
 
         elif (s['mimeType'] == 'application/x-mpegurl'):
             url = s['url']
             PROTOCOL = 'hls'
             mimeType = 'application/x-mpegURL'
             play_urls.update({2: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
+            if 'mobile' in s['url']:
+                play_urls.update({5: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
 
         else:
             url = s['url']
             PROTOCOL = 'hls'
             mimeType = 'video/mp2t'
             play_urls.update({3: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
+            if 'mobile' in s['url']:
+                play_urls.update({6: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
 
 
     ordered_dict = OrderedDict(sorted(play_urls.items(), key=lambda x: x[0]))
@@ -180,44 +186,44 @@ def play(chCode, chId, replay=False, keepBeginTime=True):
     lst = []
 
     for x in ordered_dict.items():
-        lst.append(x[-1]['protocol'] + ': ' + x[-1]['mimeType'])
+        headers  = {
+            'User-Agent' : UA
+        }
 
-    if len(lst) > 1:
-        res = xbmcgui.Dialog().select('TVP GO - Wybierz strumień', lst)
-    else:
-        res = 0
+        response = requests.get(x[-1]['url'], headers=headers, verify=False, timeout=3)
+        status = response.status_code
 
-    if res >= 0:
-        get_value = [v for k, v in ordered_dict.items()][res]
+        if status < 300:
+            lst.append(x[-1]['url'])
 
-        url_stream = get_value['url']
-        mimeType = get_value['mimeType']
-        PROTOCOL = get_value['protocol']
+    url_stream = [x for x in lst][0]
 
-    if 'material_niedostepny' in url_stream:
-        xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
-        return
+    if url_stream is not None:
+        if 'material_niedostepny' in url_stream:
+            xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
+            return
 
-    if not replay and chCode != '':
-        url_stream = applyTimeShift(url_stream, keepBeginTime=keepBeginTime)
+        if not replay and chCode != '':
+            url_stream = applyTimeShift(url_stream, keepBeginTime=keepBeginTime)
 
-    import inputstreamhelper
+        import inputstreamhelper
 
-    is_helper = inputstreamhelper.Helper(PROTOCOL)
-    if is_helper.check_inputstream():
-        play_item = xbmcgui.ListItem(path=url_stream)
-        play_item.setMimeType(mimeType)
-        play_item.setContentLookup(False)
-        if sys.version_info >= (3,0,0):
-            play_item.setProperty('inputstream', is_helper.inputstream_addon)
-        else:
-            play_item.setProperty('inputstreamaddon', is_helper.inputstream_addon)
+        is_helper = inputstreamhelper.Helper(PROTOCOL)
+        if is_helper.check_inputstream():
+            play_item = xbmcgui.ListItem(path=url_stream)
+            play_item.setMimeType(mimeType)
+            play_item.setContentLookup(False)
+            if sys.version_info >= (3,0,0):
+                play_item.setProperty('inputstream', is_helper.inputstream_addon)
+            else:
+                play_item.setProperty('inputstreamaddon', is_helper.inputstream_addon)
 
-        play_item.setProperty("IsPlayable", "true")
-        play_item.setProperty('inputstream.adaptive.stream_headers', 'Referer: https://tvpstream.vod.tvp.pl/&User-Agent='+quote(UA))
-        play_item.setProperty('inputstream.adaptive.manifest_type', PROTOCOL)
-      
-        xbmcplugin.setResolvedUrl(addon_handle, True, listitem=play_item)
+            play_item.setProperty("IsPlayable", "true")
+            play_item.setProperty('inputstream.adaptive.stream_headers', 'Referer: https://tvpstream.vod.tvp.pl/&User-Agent='+quote(UA))
+            play_item.setProperty('inputstream.adaptive.manifest_type', PROTOCOL)
+            #play_item.setProperty('ForceResolvePlugin', 'true')
+
+            xbmcplugin.setResolvedUrl(addon_handle, True, listitem=play_item)
 
 def replayChannelsArrayGen(): 
     data = '{"operationName":null,"variables":{},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"18a5c6b18b6443bd317f69ff092b6d7068733640159eaf216c35f583ea73ac23"}},"query":"{\\n  getStations {\\n    items {\\n      name\\n      code\\n      image_square {\\n        url\\n        __typename\\n      }\\n      background_color\\n      __typename\\n    }\\n    __typename\\n  }\\n}"}'
