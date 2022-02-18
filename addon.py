@@ -153,17 +153,18 @@ def channelArrayGen():
     
 def channels_gen():
     channels = channelArrayGen()
-    for ch in channels:
-        li = xbmcgui.ListItem(ch[1])
-        li.setProperty("IsPlayable", 'true')
-        li.setInfo(type='video', infoLabels={'title': ch[1],'sorttitle': ch[1],'plot': ''})
-        if ch[2]:
-            li.setArt({'thumb': ch[2], 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
-        else:
-            li.setArt({'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
-        url_ch = build_url({'mode':'live','action':'play','chCode':ch[0],'chID':ch[3]})
-        xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=False)
-    xbmcplugin.endOfDirectory(addon_handle)
+    if channels:
+        for ch in channels:
+            li = xbmcgui.ListItem(ch[1])
+            li.setProperty("IsPlayable", 'true')
+            li.setInfo(type='video', infoLabels={'title': ch[1],'sorttitle': ch[1],'plot': ''})
+            if ch[2]:
+                li.setArt({'thumb': ch[2], 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+            else:
+                li.setArt({'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+            url_ch = build_url({'mode':'live','action':'play','chCode':ch[0],'chID':ch[3]})
+            xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=False)
+        xbmcplugin.endOfDirectory(addon_handle)
 
 def applyTimeShift(url_stream, keepBeginTime=True):
     time_delta = int(addon.getSetting('timeshift_delta_value'))
@@ -420,20 +421,21 @@ def replayChannelsGen():
     array = channelArrayGen()
     channels = replayChannelsArrayGen()
 
-    for ch in channels:
-        li = xbmcgui.ListItem(ch[0])
-        li.setProperty("IsPlayable", 'true')
-        li.setInfo(type='video', infoLabels={'title': ch[0],'sorttitle': ch[0],'plot': ''})
+    if channels:
+        for ch in channels:
+            li = xbmcgui.ListItem(ch[0])
+            li.setProperty("IsPlayable", 'true')
+            li.setInfo(type='video', infoLabels={'title': ch[0],'sorttitle': ch[0],'plot': ''})
 
-        img = [l[2] for l in array if l[1] == ch[0]][0]
-        img = img if img else icon
+            img = [l[2] for l in array if l[1] == ch[0]][0]
+            img = img if img else icon
 
-        if img:
-            li.setArt({'thumb': img, 'poster': img, 'banner': banner, 'icon': icon, 'fanart': fanart})
+            if img:
+                li.setArt({'thumb': img, 'poster': img, 'banner': banner, 'icon': icon, 'fanart': fanart})
 
-        url_ch = build_url({'mode':'replay','action':'date','chCode':ch[1]})
-        xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
-    xbmcplugin.endOfDirectory(addon_handle)
+            url_ch = build_url({'mode':'replay','action':'date','chCode':ch[1]})
+            xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
+        xbmcplugin.endOfDirectory(addon_handle)
 
 def addZero(x): 
         if x <= 9:
