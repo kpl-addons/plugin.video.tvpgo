@@ -204,17 +204,21 @@ def getStream(chCode, chId, replay=False, keepBeginTime=True):
         if status < 300:
             lst.append(x[-1]['url'])
 
-    url_stream = [x for x in lst][0]
+    if len(lst) > 0:
+        url_stream = [x for x in lst][0]
 
-    if url_stream is not None:
-        if 'material_niedostepny' in url_stream:
-            xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
-            return
+        if url_stream is not None:
+            if 'material_niedostepny' in url_stream:
+                xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
+                return
 
-        if not replay and chCode != '':
-            url_stream = applyTimeShift(url_stream, keepBeginTime=keepBeginTime)
+            if not replay and chCode != '':
+                url_stream = applyTimeShift(url_stream, keepBeginTime=keepBeginTime)
 
-        play(url_stream, PROTOCOL, mimeType)
+            play(url_stream, PROTOCOL, mimeType)
+    else:
+        xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
+        return
 
 def play(url_stream, PROTOCOL, mimeType):
     DRM = 'com.widevine.alpha'
