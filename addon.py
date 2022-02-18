@@ -129,7 +129,7 @@ def generateBeginTimeFromTimeDelta(timeDeltaInMinutes):
     time_format_pattern = '%Y%m%dT%H%M%S'
     return utc_begin_time_object.strftime(time_format_pattern)
 
-def play(chCode, chId, replay=False, keepBeginTime=True):
+def getStream(chCode, chId, replay=False, keepBeginTime=True):
     streams = []
     play_urls = {}
 
@@ -138,7 +138,7 @@ def play(chCode, chId, replay=False, keepBeginTime=True):
     if replay:
         streams = getReplayProgramStreams(chCode, chId)
 
-    elif chCode != '':
+    if chCode != '':
         data = '{"operationName":null,"variables":{"stationCode":"'+chCode+'"},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"0b9649840619e548b01c33ae4bba6027f86eac5c48279adc04e9ac2533781e6b"}},"query":"query ($stationCode: String!) {\\n  currentProgramAsLive(stationCode: $stationCode) {\\n    id\\n    title\\n    subtitle\\n    date_start\\n    date_end\\n    date_current\\n    description\\n    description_long\\n    description_akpa_long\\n    description_akpa_medium\\n    description_akpa\\n    plrating\\n    npvr\\n    formats {\\n      mimeType\\n      url\\n      __typename\\n    }\\n    __typename\\n  }\\n}"}'
         jsdata = json.loads(data)
         response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=jsdata)
@@ -156,32 +156,40 @@ def play(chCode, chId, replay=False, keepBeginTime=True):
         streams = json.loads(response.text)['data']['getLive']['data'][0]['formats']
 
     for s in streams:
-        if (s['mimeType'] == 'application/dash+xml'):
+        if (s['mimeType'] == 'application/dash+xml') and not ('mobile' in s['url']):
             url = s['url']
             PROTOCOL = 'mpd'
             mimeType = 'application/xml+dash'
-            play_urls.update({1: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
-            if 'mobile' in s['url']:
-                play_urls.update({4: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
+            play_urls.update({1: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL, 'mobile': 'false'}})
 
-        elif (s['mimeType'] == 'application/x-mpegurl'):
+        elif (s['mimeType'] == 'application/dash+xml') and ('mobile' in s['url']):
+            url = s['url']
+            PROTOCOL = 'mpd'
+            mimeType = 'application/xml+dash'
+            play_urls.update({4: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL, 'mobile': 'true'}})
+
+        elif (s['mimeType'] == 'application/x-mpegurl') and not ('mobile' in s['url']):
             url = s['url']
             PROTOCOL = 'hls'
             mimeType = 'application/x-mpegURL'
-            play_urls.update({2: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
-            if 'mobile' in s['url']:
-                play_urls.update({5: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
+            play_urls.update({2: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL, 'mobile': 'false'}})
 
-        else:
+        elif (s['mimeType'] == 'application/x-mpegurl') and ('mobile' in s['url']):
             url = s['url']
             PROTOCOL = 'hls'
-            mimeType = 'video/mp2t'
-            play_urls.update({3: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
-            if 'mobile' in s['url']:
-                play_urls.update({6: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL}})
+            mimeType = 'application/x-mpegURL'
+            play_urls.update({5: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL, 'mobile': 'false'}})
 
+        else:
+            if ('mobile' not in s['url']):
+                url = s['url']
+                PROTOCOL = 'hls'
+                mimeType = 'video/mp2t'
+                play_urls.update({3: {'url': url, 'mimeType':mimeType, 'protocol':PROTOCOL, 'mobile': 'false'}})
 
-    ordered_dict = OrderedDict(sorted(play_urls.items(), key=lambda x: x[0]))
+        break
+
+    ordered_dict = OrderedDict(sorted(play_urls.items()))
 
     lst = []
 
@@ -206,24 +214,31 @@ def play(chCode, chId, replay=False, keepBeginTime=True):
         if not replay and chCode != '':
             url_stream = applyTimeShift(url_stream, keepBeginTime=keepBeginTime)
 
-        import inputstreamhelper
+        play(url_stream, PROTOCOL, mimeType)
 
-        is_helper = inputstreamhelper.Helper(PROTOCOL)
-        if is_helper.check_inputstream():
-            play_item = xbmcgui.ListItem(path=url_stream)
-            play_item.setMimeType(mimeType)
-            play_item.setContentLookup(False)
-            if sys.version_info >= (3,0,0):
-                play_item.setProperty('inputstream', is_helper.inputstream_addon)
-            else:
-                play_item.setProperty('inputstreamaddon', is_helper.inputstream_addon)
+def play(url_stream, PROTOCOL, mimeType):
+    DRM = 'com.widevine.alpha'
 
-            play_item.setProperty("IsPlayable", "true")
-            play_item.setProperty('inputstream.adaptive.stream_headers', 'Referer: https://tvpstream.vod.tvp.pl/&User-Agent='+quote(UA))
-            play_item.setProperty('inputstream.adaptive.manifest_type', PROTOCOL)
-            #play_item.setProperty('ForceResolvePlugin', 'true')
+    import inputstreamhelper
 
-            xbmcplugin.setResolvedUrl(addon_handle, True, listitem=play_item)
+    is_helper = inputstreamhelper.Helper(PROTOCOL, drm=DRM)
+    if is_helper.check_inputstream():
+        play_item = xbmcgui.ListItem(path=url_stream)
+        #play_item.setMimeType(mimeType)
+        play_item.setContentLookup(False)
+        if sys.version_info >= (3,0,0):
+            play_item.setProperty('inputstream', is_helper.inputstream_addon)
+        else:
+            play_item.setProperty('inputstreamaddon', is_helper.inputstream_addon)
+
+        play_item.setProperty('inputstream.adaptive.license_key', url_stream + '|Content-Type=|R{SSM}|')
+        play_item.setProperty('inputstream.adaptive.license_type', DRM)
+        play_item.setProperty("IsPlayable", "true")
+        play_item.setProperty('inputstream.adaptive.stream_headers', 'Referer: https://tvpstream.vod.tvp.pl/&User-Agent='+quote(UA))
+        play_item.setProperty('inputstream.adaptive.manifest_type', PROTOCOL)
+        #play_item.setProperty('ForceResolvePlugin', 'true')
+
+        xbmcplugin.setResolvedUrl(addon_handle, True, listitem=play_item)
 
 def replayChannelsArrayGen(): 
     data = '{"operationName":null,"variables":{},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"18a5c6b18b6443bd317f69ff092b6d7068733640159eaf216c35f583ea73ac23"}},"query":"{\\n  getStations {\\n    items {\\n      name\\n      code\\n      image_square {\\n        url\\n        __typename\\n      }\\n      background_color\\n      __typename\\n    }\\n    __typename\\n  }\\n}"}'
@@ -354,7 +369,7 @@ if mode:
         if action == 'play':
             channel_code = params.get('chCode', '')
             channel_id = params.get('chID', '')
-            play(channel_code,channel_id)
+            getStream(channel_code,channel_id)
 
     if mode == 'replay':
         if action == 'getChannels':
@@ -370,12 +385,12 @@ if mode:
             channel_code = params.get('chCode', '')
             program_id = params.get('progID', '')
             date = params.get('date', '')
-            play(channel_code,program_id, replay=True)
+            getStream(channel_code,program_id, replay=True)
 
     if mode == 'list':
         channel_code = params.get('chCode', '')
         channel_id = params.get('chID', '')
-        play(channel_code,channel_id)
+        getStream(channel_code,channel_id)
         
 else:
     if not action:
