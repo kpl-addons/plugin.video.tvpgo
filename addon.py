@@ -331,33 +331,22 @@ def getStream(chCode, chId):
 
             url_stream = getStreamOfType(streams, 'application/x-mpegurl')
             
-            if 'material_niedostepny' in url_stream:
-                xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
-                return
+            play(url_stream, 'hls', 'application/x-mpegurl')
 
-            headers = {
-                'User-Agent' : UA,
-            }
-
-            response = requests.get(url_stream, headers=headers, verify=False, timeout=3)
-            status = response.status_code
-
-            if status < 400:
-                play(url_stream, 'hls', 'application/x-mpegurl')
-
-            else:
-                xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
-                return
 
     except Exception as ex:
         xbmc.log('TVP GO getStream Exception: {}'.format(ex), level=0)
 
 def play(url_stream, PROTOCOL, mimeType):
-    DRM = 'com.widevine.alpha'
-
     import inputstreamhelper
 
-    is_helper = inputstreamhelper.Helper(PROTOCOL, drm=DRM)
+    if 'material_niedostepny' in url_stream:
+        xbmcgui.Dialog().notification('TVP GO', 'Materiał niedostępny')
+        return
+
+    #DRM = 'com.widevine.alpha'
+
+    is_helper = inputstreamhelper.Helper(PROTOCOL)#, drm=DRM)
     if is_helper.check_inputstream():
         play_item = xbmcgui.ListItem(path=url_stream)
         play_item.setMimeType(mimeType)
@@ -367,8 +356,8 @@ def play(url_stream, PROTOCOL, mimeType):
         else:
             play_item.setProperty('inputstreamaddon', is_helper.inputstream_addon)
 
-        play_item.setProperty('inputstream.adaptive.license_key', url_stream + '|Content-Type=|R{SSM}|')
-        play_item.setProperty('inputstream.adaptive.license_type', DRM)
+        #play_item.setProperty('inputstream.adaptive.license_key', url_stream + '|Content-Type=|R{SSM}|')
+        #play_item.setProperty('inputstream.adaptive.license_type', DRM)
         play_item.setProperty("IsPlayable", "true")
         play_item.setProperty('inputstream.adaptive.stream_headers', 'Referer: https://tvpstream.vod.tvp.pl/&User-Agent='+quote(UA))
         play_item.setProperty('inputstream.adaptive.manifest_type', PROTOCOL)
