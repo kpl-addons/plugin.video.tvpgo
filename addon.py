@@ -45,6 +45,9 @@ fanart = os.path.join(addon_path, 'fanart.png')
 
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.50'
 
+timeout = (5, 5)
+sess = requests.Session()
+
 def build_url(query):
     return base_url + '?' + urllib_parse.urlencode(query)
 
@@ -63,108 +66,116 @@ def main_menu():
         xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
     xbmcplugin.endOfDirectory(addon_handle)
 
+def getRequests(url, json={}, headers={}, retry=0):
+    try:
+        if json:
+            content = requests.post(url, headers=headers, json=json, timeout=timeout).json()
+        else:
+            content = requests.get(url, headers=headers, timeout=timeout).json()
+
+        data = content.get('data', None)
+
+        if data is not None and content is not None and content != '':
+            return content
+
+    except Exception as ex:
+        xbmcgui.Dialog().notification('[B]Błąd[/B]', 'Połączenie do serwisu nie powiodło się', xbmcgui.NOTIFICATION_INFO, 6000, False)
 
 def channelArrayGen():
-    try:
-        data = {
-            'operationName': None,
-            'variables': {
-                'categoryId': None,
+    data = {
+        'operationName': None,
+        'variables': {
+            'categoryId': None,
+        },
+        'extensions': {
+            'persistedQuery': {
+                'version': 1,
+                'sha256Hash': '5c29325c442c94a4004432d70f94e336b8c258801fe16946875a873e818c8aca',
             },
-            'extensions': {
-                'persistedQuery': {
-                    'version': 1,
-                    'sha256Hash': '5c29325c442c94a4004432d70f94e336b8c258801fe16946875a873e818c8aca',
-                },
-            
-            'query': """
-        query ($categoryId: String) {
-          getLandingPageVideos(categoryId: $categoryId) {
+        
+        'query': """
+    query ($categoryId: String) {
+      getLandingPageVideos(categoryId: $categoryId) {
+        type
+        title
+        elements {
+          id
+          title
+          subtitle
+          type
+          img {
+            hbbtv
+            image
+            website_holder_16x9
+            video_holder_16x9
+            __typename
+          }
+          broadcast_start_ts
+          broadcast_end_ts
+          sportType
+          label {
             type
-            title
-            elements {
-              id
-              title
-              subtitle
-              type
-              img {
-                hbbtv
-                image
-                website_holder_16x9
-                video_holder_16x9
-                __typename
-              }
-              broadcast_start_ts
-              broadcast_end_ts
-              sportType
-              label {
-                type
-                text
-                __typename
-              }
-              stats {
-                video_count
-                __typename
-              }
-              __typename
-            }
+            text
             __typename
           }
-          getStationsForMainpage {
-            items {
-              id
-              name
-              title
-              code
-              image_square {
-                url
-                __typename
-              }
-              background_color
-              isNativeChanel
-              __typename
-            }
+          stats {
+            video_count
             __typename
           }
-        }""" 
-            }
+          __typename
         }
+        __typename
+      }
+      getStationsForMainpage {
+        items {
+          id
+          name
+          title
+          code
+          image_square {
+            url
+            __typename
+          }
+          background_color
+          isNativeChanel
+          __typename
+        }
+        __typename
+      }
+    }""" 
+        }
+    }
 
-        response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
+    response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data)
+    ch_data = response['data']['getStationsForMainpage']['items']
 
-        ch_data = response['data']['getStationsForMainpage']['items']
+    ar_chan = []
+    for c in ch_data:
+        ch_code = c['code']
+        ch_name = c['name'].replace('EPG - ', '')
 
-        ar_chan = []
-        for c in ch_data:
-            ch_code = c['code']
-            ch_name = c['name'].replace('EPG - ', '')
-
-            if ch_code == '':
-                ch_id = c['id']
-                ch_img = c['image_square']['url'].replace('{width}','1000').replace('{height}','500')
-            else:
-                ch_id = ''
-                ch_img = c['image_square']['url'].replace('{width}','140').replace('{height}','140')
-            ar_chan.append([ch_code, ch_name, ch_img, ch_id])
-        return ar_chan
-    
-    except Exception as ex:
-        xbmc.log('TVP GO channelArrayGen Exception: {}'.format(ex), level=0)
+        if ch_code == '':
+            ch_id = c['id']
+            ch_img = c['image_square']['url'].replace('{width}','1000').replace('{height}','500')
+        else:
+            ch_id = ''
+            ch_img = c['image_square']['url'].replace('{width}','140').replace('{height}','140')
+        ar_chan.append([ch_code, ch_name, ch_img, ch_id])
+    return ar_chan
     
 def channels_gen():
     channels = channelArrayGen()
-    if channels:
-        for ch in channels:
-            li = xbmcgui.ListItem(ch[1])
-            li.setProperty("IsPlayable", 'true')
-            li.setInfo(type='video', infoLabels={'title': ch[1],'sorttitle': ch[1],'plot': ''})
-            if ch[2]:
-                li.setArt({'thumb': ch[2], 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
-            else:
-                li.setArt({'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
-            url_ch = build_url({'mode':'live','action':'play','chCode':ch[0],'chID':ch[3]})
-            xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=False)
-        xbmcplugin.endOfDirectory(addon_handle)
+    for ch in channels:
+        li = xbmcgui.ListItem(ch[1])
+        li.setProperty("IsPlayable", 'true')
+        li.setInfo(type='video', infoLabels={'title': ch[1],'sorttitle': ch[1],'plot': ''})
+        if ch[2]:
+            li.setArt({'thumb': ch[2], 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+        else:
+            li.setArt({'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+        url_ch = build_url({'mode':'live','action':'play','chCode':ch[0],'chID':ch[3]})
+        xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=False)
+    xbmcplugin.endOfDirectory(addon_handle)
 
 def applyTimeShift(url_stream, keepBeginTime=True):
     time_delta = int(addon.getSetting('timeshift_delta_value'))
@@ -207,135 +218,126 @@ def getStreamOfType(streams, mimeType):
     return url_stream
 
 def getProgram(chCode, progID):
-    try:
-        streams = getReplayProgramStreams(chCode, progID)
-        url_stream = getStreamOfType(streams, 'application/x-mpegurl')
-        play(url_stream, 'hls', 'application/x-mpegurl')
-
-    except Exception as ex:
-        xbmc.log('TVP GO getProgram Exception: {}'.format(ex), level=0)
+    streams = getReplayProgramStreams(chCode, progID)
+    url_stream = getStreamOfType(streams, 'application/x-mpegurl')
+    play(url_stream, 'hls', 'application/x-mpegurl')
 
 def getStream(chCode, chId):
-    try:
-        if chCode != '':
-            data = {
-                'operationName': None,
-                'variables': {
-                    'stationCode': '{0}'.format(chCode),
+    if chCode != '':
+        data = {
+            'operationName': None,
+            'variables': {
+                'stationCode': '{0}'.format(chCode),
+            },
+            'extensions': {
+                'persistedQuery': {
+                    'version': 1,
+                    'sha256Hash': '0b9649840619e548b01c33ae4bba6027f86eac5c48279adc04e9ac2533781e6b',
                 },
-                'extensions': {
-                    'persistedQuery': {
-                        'version': 1,
-                        'sha256Hash': '0b9649840619e548b01c33ae4bba6027f86eac5c48279adc04e9ac2533781e6b',
-                    },
-                
-                'query': """
-            query ($stationCode: String!) {
-              currentProgramAsLive(stationCode: $stationCode) {
-                id
-                title
-                subtitle
-                date_start
-                date_end
-                date_current
-                description
-                description_long
-                description_akpa_long
-                description_akpa_medium
-                description_akpa
-                plrating
-                npvr
-                formats {
-                  mimeType
-                  url
-                  __typename
-                }
-                __typename
-              }
-            }
-            }""" 
-            }
-            }
-
-            response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
-            if response['data']['currentProgramAsLive'] is not None:
-                streams = response['data']['currentProgramAsLive']['formats']
-                url_stream = getStreamOfType(streams, 'application/x-mpegurl')
-                url_stream = applyTimeShift(url_stream)
-                play(url_stream, 'hls', 'application/x-mpegurl')
-            else:
-                anyProgramme = replayProgramsArrayGen(chCode, getDate(int(time.time())))[0]
-                streams = getReplayProgramStreams(chCode, anyProgramme[0])
-                url_stream = getStreamOfType(streams, 'application/dash+xml')
-                url_stream = applyTimeShift(url_stream, False)
-                play(url_stream, 'mpd', 'application/xml+dash')
-
-        else:
-            data = {
-                'operationName': None,
-                'variables': {
-                    'liveId': '{0}'.format(chId),
-                },
-                'extensions': {
-                    'persistedQuery': {
-                        'version': 1,
-                        'sha256Hash': 'f2fd34978dc0aea320ba2567f96aa72a184ca2d1e55b2a16dc0915bd03b54fb3',
-                    },
-                
-                'query': """
-            query ($liveId: String!) {
-              getLive(liveId: $liveId) {
-                error
-                data {
-                  type
-                  title
-                  subtitle
-                  lead
-                  label {
-                    type
-                    text
-                    __typename
-                  }
-                  src
-                  vast_url
-                  duration_min
-                  subtitles {
-                    src
-                    autoDesc
-                    lang
-                    text
-                    __typename
-                  }
-                  is_live
-                  formats {
-                    mimeType
-                    totalBitrate
-                    videoBitrate
-                    audioBitrate
-                    adaptive
-                    url
-                    downloadable
-                    __typename
-                  }
-                  web_url
-                  __typename
-                }
-                __typename
-              }
-            }""" 
-            }
-            }
-
-            response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
-            streams = response['data']['getLive']['data'][0]['formats']
-
-            url_stream = getStreamOfType(streams, 'application/x-mpegurl')
             
-            play(url_stream, 'hls', 'application/x-mpegurl')
+            'query': """
+        query ($stationCode: String!) {
+          currentProgramAsLive(stationCode: $stationCode) {
+            id
+            title
+            subtitle
+            date_start
+            date_end
+            date_current
+            description
+            description_long
+            description_akpa_long
+            description_akpa_medium
+            description_akpa
+            plrating
+            npvr
+            formats {
+              mimeType
+              url
+              __typename
+            }
+            __typename
+          }
+        }
+        }""" 
+        }
+        }
 
+        response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data)
 
-    except Exception as ex:
-        xbmc.log('TVP GO getStream Exception: {}'.format(ex), level=0)
+        live = response['data']['currentProgramAsLive']
+        if live is not None:
+            streams = response['data']['currentProgramAsLive']['formats']
+            url_stream = getStreamOfType(streams, 'application/dash+xml')
+            url_stream = applyTimeShift(url_stream)
+            play(url_stream, 'mpd', 'application/dash+xml')
+        else:
+            anyProgramme = replayProgramsArrayGen(chCode, getDate(int(time.time())))[0]
+            streams = getReplayProgramStreams(chCode, anyProgramme[0])
+            url_stream = getStreamOfType(streams, 'application/dash+xml')
+            url_stream = applyTimeShift(url_stream, False)
+            play(url_stream, 'mpd', 'application/xml+dash')
+
+    else:
+        data = {
+            'operationName': None,
+            'variables': {
+                'liveId': '{0}'.format(chId),
+            },
+            'extensions': {
+                'persistedQuery': {
+                    'version': 1,
+                    'sha256Hash': 'f2fd34978dc0aea320ba2567f96aa72a184ca2d1e55b2a16dc0915bd03b54fb3',
+                },
+            
+            'query': """
+        query ($liveId: String!) {
+          getLive(liveId: $liveId) {
+            error
+            data {
+              type
+              title
+              subtitle
+              lead
+              label {
+                type
+                text
+                __typename
+              }
+              src
+              vast_url
+              duration_min
+              subtitles {
+                src
+                autoDesc
+                lang
+                text
+                __typename
+              }
+              is_live
+              formats {
+                mimeType
+                totalBitrate
+                videoBitrate
+                audioBitrate
+                adaptive
+                url
+                downloadable
+                __typename
+              }
+              web_url
+              __typename
+            }
+            __typename
+          }
+        }""" 
+        }
+        }
+
+        response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data)
+        streams = response['data']['getLive']['data'][0]['formats']
+        url_stream = getStreamOfType(streams, 'application/x-mpegurl')
+        play(url_stream, 'hls', 'application/x-mpegurl')
 
 def play(url_stream, PROTOCOL, mimeType):
     import inputstreamhelper
@@ -365,66 +367,62 @@ def play(url_stream, PROTOCOL, mimeType):
         xbmcplugin.setResolvedUrl(addon_handle, True, listitem=play_item)
 
 def replayChannelsArrayGen(): 
-    try:
-        data = {
-            'operationName': None,
-            'variables': {},
-            'extensions': {
-                'persistedQuery': {
-                    'version': 1,
-                    'sha256Hash': '18a5c6b18b6443bd317f69ff092b6d7068733640159eaf216c35f583ea73ac23',
-                },
-            
-            'query': """
-        {
-          getStations {
-            items {
-              name
-              code
-              image_square {
-                url
-                __typename
-              }
-              background_color
-              __typename
-            }
+    data = {
+        'operationName': None,
+        'variables': {},
+        'extensions': {
+            'persistedQuery': {
+                'version': 1,
+                'sha256Hash': '18a5c6b18b6443bd317f69ff092b6d7068733640159eaf216c35f583ea73ac23',
+            },
+        
+        'query': """
+    {
+      getStations {
+        items {
+          name
+          code
+          image_square {
+            url
             __typename
           }
-        }""" 
+          background_color
+          __typename
         }
-        }
+        __typename
+      }
+    }""" 
+    }
+    }
 
-        response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
-        ch_data = response['data']['getStations']['items']
-        ar_chan = []
-        for ch in ch_data:
-            chName = ch['name']
-            chCode = ch['code']
-            ar_chan.append([chName,chCode])
-        return ar_chan
+    response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data)
+    ch_data = response['data']['getStations']['items']
 
-    except Exception as ex:
-        xbmc.log('TVP GO replayChannelsArrayGen Exception: {}'.format(ex), level=0)
+    ar_chan = []
+    for ch in ch_data:
+        chName = ch['name']
+        chCode = ch['code']
+        ar_chan.append([chName,chCode])
+    return ar_chan
     
 def replayChannelsGen():
     array = channelArrayGen()
     channels = replayChannelsArrayGen()
 
-    if channels:
-        for ch in channels:
-            li = xbmcgui.ListItem(ch[0])
-            li.setProperty("IsPlayable", 'true')
-            li.setInfo(type='video', infoLabels={'title': ch[0],'sorttitle': ch[0],'plot': ''})
+    for ch in channels:
+        li = xbmcgui.ListItem(ch[0])
+        li.setProperty("IsPlayable", 'true')
+        li.setInfo(type='video', infoLabels={'title': ch[0],'sorttitle': ch[0],'plot': ''})
 
-            img = [l[2] for l in array if l[1] == ch[0]][0]
-            img = img if img else icon
+        img = [l[2] for l in array if l[1] == ch[0]][0]
+        img = img if img else icon
 
-            if img:
-                li.setArt({'thumb': img, 'poster': img, 'banner': banner, 'icon': icon, 'fanart': fanart})
+        if img:
+            li.setArt({'thumb': img, 'poster': img, 'banner': banner, 'icon': icon, 'fanart': fanart})
 
-            url_ch = build_url({'mode':'replay','action':'date','chCode':ch[1]})
-            xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
-        xbmcplugin.endOfDirectory(addon_handle)
+        url_ch = build_url({'mode':'replay','action':'date','chCode':ch[1]})
+        xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
+    xbmcplugin.endOfDirectory(addon_handle)
 
 def addZero(x): 
         if x <= 9:
@@ -456,152 +454,150 @@ def replayCalendarGen(chCode):
     xbmcplugin.endOfDirectory(addon_handle)
     
 def replayProgramsArrayGen(chCode, date):
-    try:
-        data = {
-            'operationName': None,
-            'variables': {
-                'station_code': '{0}'.format(chCode),
-                'date': '{0}'.format(date),
-                'categorytvp': '',
+    data = {
+        'operationName': None,
+        'variables': {
+            'station_code': '{0}'.format(chCode),
+            'date': '{0}'.format(date),
+            'categorytvp': '',
+        },
+        'extensions': {
+            'persistedQuery': {
+                'version': 1,
+                'sha256Hash': '5750d5b161a9ac4e18ae0a5c789d460763ed2bc0835446df9be712017965f8c5',
             },
-            'extensions': {
-                'persistedQuery': {
-                    'version': 1,
-                    'sha256Hash': '5750d5b161a9ac4e18ae0a5c789d460763ed2bc0835446df9be712017965f8c5',
-                },
-            
-            'query': """
-        query ($station_code: String, $date: String, $categorytvp: String) {
-          getProgramsFromStation(
-            station_code: $station_code
-            date: $date
-            categorytvp: $categorytvp
-          ) {
-            total_count
-            items {
-              id
-              record_id
+        
+        'query': """
+    query ($station_code: String, $date: String, $categorytvp: String) {
+      getProgramsFromStation(
+        station_code: $station_code
+        date: $date
+        categorytvp: $categorytvp
+      ) {
+        total_count
+        items {
+          id
+          record_id
+          title
+          date_start
+          date_end
+          duration
+          station_code
+          description
+          description_long
+          program {
+            has_video_vod
+            website_id
+            cms_id
+            id
+            title
+            year
+            lang
+            image {
+              type
               title
-              date_start
-              date_end
-              duration
-              station_code
-              description
-              description_long
-              program {
-                has_video_vod
-                website_id
-                cms_id
-                id
-                title
-                year
-                lang
-                image {
-                  type
-                  title
-                  point_of_origin
-                  url
-                  width
-                  height
-                  description
-                  __typename
-                }
-                program_type {
-                  id
-                  image_logo {
-                    type
-                    title
-                    point_of_origin
-                    url
-                    width
-                    height
-                    description
-                    __typename
-                  }
-                  title
-                  __typename
-                }
-                cycle {
-                  id
-                  title
-                  image_logo {
-                    type
-                    title
-                    point_of_origin
-                    url
-                    width
-                    height
-                    description
-                    __typename
-                  }
-                  __typename
-                }
-                __typename
-              }
-              station {
-                id
-                name
-                code
-                image {
-                  type
-                  title
-                  point_of_origin
-                  url
-                  width
-                  height
-                  description
-                  __typename
-                }
-                image_square {
-                  type
-                  title
-                  point_of_origin
-                  url
-                  width
-                  height
-                  description
-                  __typename
-                }
-                background_color
-                __typename
-              }
+              point_of_origin
               url
-              url_canonical
-              categories {
-                id
-                category_type
+              width
+              height
+              description
+              __typename
+            }
+            program_type {
+              id
+              image_logo {
+                type
                 title
+                point_of_origin
+                url
+                width
+                height
+                description
                 __typename
               }
-              akpa_attributes
-              plrating
+              title
+              __typename
+            }
+            cycle {
+              id
+              title
+              image_logo {
+                type
+                title
+                point_of_origin
+                url
+                width
+                height
+                description
+                __typename
+              }
               __typename
             }
             __typename
           }
-        }""" 
+          station {
+            id
+            name
+            code
+            image {
+              type
+              title
+              point_of_origin
+              url
+              width
+              height
+              description
+              __typename
+            }
+            image_square {
+              type
+              title
+              point_of_origin
+              url
+              width
+              height
+              description
+              __typename
+            }
+            background_color
+            __typename
+          }
+          url
+          url_canonical
+          categories {
+            id
+            category_type
+            title
+            __typename
+          }
+          akpa_attributes
+          plrating
+          __typename
         }
-        }
+        __typename
+      }
+    }""" 
+    }
+    }
 
-        response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
-        pr_data = response['data']['getProgramsFromStation']['items']
-        ar_prog = []
-        time_now = int(time.time())*1000
-        def hm(t):
-            ts = time.localtime(t/1000)
-            return addZero(ts.tm_hour) + ':' + addZero(ts.tm_min)
-        for p in pr_data:
-            if p['date_start'] < time_now:
-                pID = p['record_id']
-                chCode = p['station_code']
-                pTitle = '['+hm(p['date_start'])+'-'+hm(p['date_end'])+'] '+p['title']
-                pDescr = p['description']
-                ar_prog.append([pID, chCode, pTitle, pDescr])
+    response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data)
+    print('TEST000000000000000000000')
+    print(response)
+    pr_data = response['data']['getProgramsFromStation']['items']
+    ar_prog = []
+    time_now = int(time.time())*1000
+    def hm(t):
+        ts = time.localtime(t/1000)
+        return addZero(ts.tm_hour) + ':' + addZero(ts.tm_min)
+    for p in pr_data:
+        if p['date_start'] < time_now:
+            pID = p['record_id']
+            chCode = p['station_code']
+            pTitle = '['+hm(p['date_start'])+'-'+hm(p['date_end'])+'] '+p['title']
+            pDescr = p['description']
+            ar_prog.append([pID, chCode, pTitle, pDescr])
 
-        return ar_prog
-
-    except Exception as ex:
-        xbmc.log('TVP GO replayProgramsArrayGen Exception: {}'.format(ex), level=0)
+    return ar_prog
     
 def replayProgramsGen(chCode,date):
     programs = replayProgramsArrayGen(chCode, date)
@@ -615,54 +611,50 @@ def replayProgramsGen(chCode,date):
     xbmcplugin.endOfDirectory(addon_handle)
 
 def getReplayProgramStreams(chCode, progID):
-    try:
-        data = {
-            'operationName': None,
-            'variables': {
-                'programId': '{0}'.format(progID),
-                'stationCode': '{0}'.format(chCode),
+    data = {
+        'operationName': None,
+        'variables': {
+            'programId': '{0}'.format(progID),
+            'stationCode': '{0}'.format(chCode),
+        },
+        'extensions': {
+            'persistedQuery': {
+                'version': 1,
+                'sha256Hash': '52d98fa9bb2b66075e8d230809fd5d991d16fa6a97719b2b4984797f5a506c4a',
             },
-            'extensions': {
-                'persistedQuery': {
-                    'version': 1,
-                    'sha256Hash': '52d98fa9bb2b66075e8d230809fd5d991d16fa6a97719b2b4984797f5a506c4a',
-                },
-            
-            'query': """
-        query ($programId: String!, $stationCode: String!) {
-          programByRecordId(programId: $programId, stationCode: $stationCode) {
-            id
-            title
-            programId
-            program_title
-            subtitle
-            date_start
-            date_end
-            date_current
-            description
-            description_long
-            description_akpa_long
-            description_akpa_medium
-            description_akpa
-            plrating
-            formats {
-              mimeType
-              url
-              __typename
-            }
-            __typename
-          }
-        }""" 
+        
+        'query': """
+    query ($programId: String!, $stationCode: String!) {
+      programByRecordId(programId: $programId, stationCode: $stationCode) {
+        id
+        title
+        programId
+        program_title
+        subtitle
+        date_start
+        date_end
+        date_current
+        description
+        description_long
+        description_akpa_long
+        description_akpa_medium
+        description_akpa
+        plrating
+        formats {
+          mimeType
+          url
+          __typename
         }
-        }
+        __typename
+      }
+    }""" 
+    }
+    }
 
-        response = requests.post('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data).json()
-        streams = response['data']['programByRecordId']['formats']
+    response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', json=data)
+    streams = response['data']['programByRecordId']['formats']
 
-        return streams
-
-    except Exception as ex:
-        xbmc.log('TVP GO getReplayProgramStreams Exception: {}'.format(ex), level=0)
+    return streams
             
 def generate_m3u(c):
     if file_name == '' or path_m3u == '':
