@@ -160,8 +160,10 @@ def channelArrayGen():
     }
 
     response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', data=data)
-
-    ch_data = response['data']['getStationsForMainpage']['items']
+    try:
+        ch_data = response['data']['getStationsForMainpage']['items']
+    except:
+        ch_data = []
 
     ar_chan = []
     for c in ch_data:
@@ -398,8 +400,10 @@ def replayChannelsArrayGen():
     }
 
     response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', data=data)
-
-    ch_data = response['data']['getStations']['items']
+    try:
+        ch_data = response['data']['getStations']['items']
+    except:
+        ch_data = []
 
     ar_chan = []
     for ch in ch_data:
@@ -584,8 +588,11 @@ def replayProgramsArrayGen(chCode, date):
     }
 
     response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', data=data)
+    try:
+        pr_data = response['data']['getProgramsFromStation']['items']
+    except:
+        pr_data = []
 
-    pr_data = response['data']['getProgramsFromStation']['items']
     ar_prog = []
     time_now = int(time.time()) * 1000
     def hm(t):
@@ -654,7 +661,10 @@ def getReplayProgramStreams(chCode, progID):
     }
 
     response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', data=data)
-    streams = response['data']['programByRecordId']['formats']
+    try:
+        streams = response['data']['programByRecordId']['formats']
+    except:
+        streams = []
 
     return streams
 
