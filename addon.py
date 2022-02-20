@@ -42,36 +42,22 @@ poster = os.path.join(addon_path, 'resources', 'art', 'poster.png')
 banner = os.path.join(addon_path, 'resources', 'art', 'banner.png')
 icon = os.path.join(addon_path, 'icon.png')
 fanart = os.path.join(addon_path, 'fanart.png')
+timeout = (3, 5)
 
-UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.50'
-
-timeout = (5, 5)
+class SourceException(Exception):
+    pass
 
 def build_url(query):
     return base_url + '?' + urllib_parse.urlencode(query)
 
-def getRequests(url, data={}, headers={}, retry=0):
+def getRequests(url, data={}):
     try:
         if json:
-            response = requests.post(url, json=data, headers=headers, timeout=timeout)
+            response = requests.post(url, json=data)
         else:
-            response = requests.get(url, headers=headers, timeout=timeout)
+            response = requests.get(url)
 
         content = json.loads(response.text)
-
-        try:
-            error = content['errors']
-            if 'PersistedQueryNotFound' in error[0].get('message'):
-                i += 1
-                if retry < 3:
-                    return getRequests(url=url, data=data, headers=headers, retry=i)
-                else:
-                    response = None
-        except:
-            pass
-
-        if response == '' or response is None:
-            return
 
         return content
 
@@ -94,7 +80,9 @@ def main_menu():
         xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
     xbmcplugin.endOfDirectory(addon_handle)
 
-def channelArrayGen():
+def channelArrayGen(retry=0):
+    retry += 1
+
     data = {
         'operationName': None,
         'variables': {
@@ -163,7 +151,11 @@ def channelArrayGen():
     try:
         ch_data = response['data']['getStationsForMainpage']['items']
     except:
-        ch_data = []
+        time.sleep(1)
+        if retry < 6:
+            return channelArrayGen(retry)
+        else:
+            raise SourceException('Error loading list')
 
     ar_chan = []
     for c in ch_data:
@@ -246,18 +238,20 @@ def playStream(url_stream, protocol, mimeType=None):
       
     xbmcplugin.setResolvedUrl(addon_handle, True, listitem=play_item)
 
-def PlayChannel(chCode, chId):
+def PlayChannel(chCode, chId, retry=0):
+    retry += 1
+
     if chCode != '':
         data = {
             'operationName': None,
             'variables': {
-                'stationCode': '{0}'.format(chCode),
+                'stationCode': str(chCode),
             },
             'extensions': {
                 'persistedQuery': {
                     'version': 1,
                     'sha256Hash': '0b9649840619e548b01c33ae4bba6027f86eac5c48279adc04e9ac2533781e6b',
-                },
+            },
             
             'query': """
         query ($stationCode: String!) {
@@ -295,9 +289,9 @@ def PlayChannel(chCode, chId):
 
         if live is not None:
             streams = response['data']['currentProgramAsLive']['formats']
-            url_stream = getStreamOfType(streams,'application/x-mpegurl')
+            url_stream = getStreamOfType(streams,'application/dash+xml')
             url_stream = applyTimeShift(url_stream)
-            playStream(url_stream, 'hls', 'application/x-mpegurl')
+            playStream(url_stream, 'mpd', 'application/xml+dash')
 
         else:
             anyProgramme = replayProgramsArrayGen(chCode, getDate(int(time.time())))[0]
@@ -367,10 +361,15 @@ def PlayChannel(chCode, chId):
             url_stream = getStreamOfType(streams, 'application/x-mpegurl')
             playStream(url_stream, 'hls', 'application/x-mpegurl')
         except:
-            xbmcgui.Dialog().notification('[B]Błąd[/B]', 'Połączenie do serwisu nie powiodło się', xbmcgui.NOTIFICATION_INFO, 6000, False)
-            return channels_gen()
+            time.sleep(1)
+            if retry < 6:
+                PlayChannel(chCode, chId, retry)
+            else:
+                raise SourceException('Error loading list')
 
-def replayChannelsArrayGen(): 
+def replayChannelsArrayGen(retry=0): 
+    retry += 1
+
     data = {
         'operationName': None,
         'variables': {},
@@ -403,7 +402,11 @@ def replayChannelsArrayGen():
     try:
         ch_data = response['data']['getStations']['items']
     except:
-        ch_data = []
+        time.sleep(1)
+        if retry < 6:
+            return replayChannelsArrayGen(retry)
+        else:
+            raise SourceException('Error loading list')
 
     ar_chan = []
     for ch in ch_data:
@@ -460,7 +463,9 @@ def replayCalendarGen(chCode):
         xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
     xbmcplugin.endOfDirectory(addon_handle)
     
-def replayProgramsArrayGen(chCode, date):
+def replayProgramsArrayGen(chCode, date, retry=0):
+    retry += 1
+
     data = {
         'operationName': None,
         'variables': {
@@ -591,7 +596,11 @@ def replayProgramsArrayGen(chCode, date):
     try:
         pr_data = response['data']['getProgramsFromStation']['items']
     except:
-        pr_data = []
+        time.sleep(1)
+        if retry < 6:
+            return replayProgramsArrayGen(chCode, date, retry)
+        else:
+            raise SourceException('Error loading list')
 
     ar_prog = []
     time_now = int(time.time()) * 1000
@@ -619,7 +628,9 @@ def replayProgramsGen(chCode,date):
         xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=False)
     xbmcplugin.endOfDirectory(addon_handle)
 
-def getReplayProgramStreams(chCode, progID):
+def getReplayProgramStreams(chCode, progID, retry=0):
+    retry += 1
+
     data = {
         'operationName': None,
         'variables': {
@@ -664,7 +675,11 @@ def getReplayProgramStreams(chCode, progID):
     try:
         streams = response['data']['programByRecordId']['formats']
     except:
-        streams = []
+        time.sleep(1)
+        if retry < 6:
+            return getReplayProgramStreams(chCode, progID, retry)
+        else:
+            raise SourceException('Error loading list')
 
     return streams
 
@@ -679,10 +694,10 @@ def getStreamOfType(streams, mimeType):
         return url_stream
     else:
         xbmcgui.Dialog().notification('[B]Błąd[/B]', 'Połączenie do serwisu nie powiodło się', xbmcgui.NOTIFICATION_INFO, 6000, False)
-        return channels_gen()
+        return
     
 def PlayProgram(chCode,progID):
-    streams = getReplayProgramStreams(chCode,progID)
+    streams = getReplayProgramStreams(chCode, progID)
     url_stream = getStreamOfType(streams,'application/x-mpegurl')
     playStream(url_stream, 'hls')
 
