@@ -1,31 +1,73 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+#   GNU General Public License
+
+#   TVP GO KODI Addon
+#   Copyright (C) 2022 Kodi-PL
+#   Copyright (C) 2022 Mariusz89B
+#   Copyright (C) 2022 mtr81
+#   Copyright (C) 2022 m1992
+
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+
+#   You should have received a copy of the GNU General Public License
+#   along with this program. If not, see https://www.gnu.org/licenses.
+
+#   MIT License
+
+#   Permission is hereby granted, free of charge, to any person obtaining a copy
+#   of this software and associated documentation files (the "Software"), to deal
+#   in the Software without restriction, including without limitation the rights
+#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#   copies of the Software, and to permit persons to whom the Software is
+#   furnished to do so, subject to the following conditions:
+
+#   The above copyright notice and this permission notice shall be included in all
+#   copies or substantial portions of the Software.
+
+#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#   SOFTWARE.
+
 import os
 import sys
 
 import six
 from six.moves import urllib_error, urllib_request, urllib_parse, http_cookiejar
 
-import urllib
 import requests
+import urllib
+
+try:
+    from urllib.parse import urlencode, quote_plus, quote, unquote
+except ImportError:
+    from urllib import urlencode, quote_plus, quote, unquote
+
 import xbmc
 import xbmcgui
 import xbmcplugin
 import xbmcaddon
 import xbmcvfs
-import urllib3
+
 import re
 import json
 import random
 import time
 import datetime
 
-from collections import OrderedDict
-
-try:
-    from urllib.parse import urlencode, quote_plus, quote, unquote
-except ImportError:
-    from urllib import urlencode, quote_plus, quote, unquote
-    
 base_url = sys.argv[0]
 addon_handle = int(sys.argv[1])
 params = dict(urllib_parse.parse_qsl(sys.argv[2][1:]))
@@ -44,20 +86,23 @@ icon = os.path.join(addon_path, 'icon.png')
 fanart = os.path.join(addon_path, 'fanart.png')
 timeout = (3, 5)
 
-class SourceException(Exception):
+class source_exception(Exception):
     pass
 
 def build_url(query):
     return base_url + '?' + urllib_parse.urlencode(query)
 
-def getRequests(url, data={}):
+def get_requests(url, data={}, headers={}, payload={}, txt=False):
     try:
-        if json:
-            response = requests.post(url, json=data)
+        if data:
+            response = requests.post(url, headers=headers, json=data)
         else:
-            response = requests.get(url)
+            response = requests.get(url, headers=headers)
 
-        content = json.loads(response.text)
+        if not txt:
+            content = json.loads(response.text)
+        else:
+            content = response.text
 
         return content
 
@@ -67,8 +112,8 @@ def getRequests(url, data={}):
 
 def main_menu():
     items = [
-        ['Kanały na żywo','live','getChannels'],
-        ['Replay', 'replay','getChannels']
+        ['Kanały na żywo', 'live', 'getChannels'],
+        ['Replay', 'replay', 'getChannels']
         ]
 
     for i in items:
@@ -80,153 +125,380 @@ def main_menu():
         xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
     xbmcplugin.endOfDirectory(addon_handle)
 
-def channelArrayGen(retry=0):
+def get_epgs(retry=0):
+    from datetime import datetime
+
     retry += 1
 
-    data = {
-        'operationName': None,
-        'variables': {
-            'categoryId': None,
-        },
-        'extensions': {
-            'persistedQuery': {
-                'version': 1,
-                'sha256Hash': '5c29325c442c94a4004432d70f94e336b8c258801fe16946875a873e818c8aca',
-            },
-        
-        'query': """
-    query ($categoryId: String) {
-      getLandingPageVideos(categoryId: $categoryId) {
-        type
-        title
-        elements {
-          id
-          title
-          subtitle
-          type
-          img {
-            hbbtv
-            image
-            website_holder_16x9
-            video_holder_16x9
-            __typename
-          }
-          broadcast_start_ts
-          broadcast_end_ts
-          sportType
-          label {
-            type
-            text
-            __typename
-          }
-          stats {
-            video_count
-            __typename
-          }
-          __typename
-        }
-        __typename
-      }
-      getStationsForMainpage {
-        items {
-          id
-          name
-          title
-          code
-          image_square {
-            url
-            __typename
-          }
-          background_color
-          isNativeChanel
-          __typename
-        }
-        __typename
-      }
-    }""" 
-        }
+    url = 'https://www.tvp.pl/program-tv'
+
+    headers = {
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'DNT': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36 Edg/98.0.1108.56',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+        'Referer': 'https://www.tvp.pl/program-tv',
+        'Accept-Language': 'sv,en;q=0.9,en-GB;q=0.8,en-US;q=0.7,pl;q=0.6,fr;q=0.5',
     }
 
-    response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', data=data)
+    response = get_requests(url, headers=headers, txt=True)
+
     try:
-        ch_data = response['data']['getStationsForMainpage']['items']
+        stations_regex = re.compile(r'window.__stationsProgram\[\d+\]\s=\s(.*?)</script>', re.MULTILINE|re.DOTALL)
+        finds = stations_regex.findall(response)
+
     except:
         time.sleep(1)
         if retry < 6:
-            return channelArrayGen(retry)
+            return get_epgs(retry)
         else:
-            raise SourceException('Error loading list')
+            raise source_exception('Error loading list')
+
+    epg_data = []
+
+    for js_data in finds:
+        js_data = re.sub(r'},\n}', r'}\n}', js_data).replace(';', '')
+
+        data = json.loads(js_data)
+        for e in data['items']:
+            ch_id = e.get('_id')
+            ch_code = e.get('station_code')
+
+            live = e.get('live')
+            if live == 'true':
+                p_live = 'Live'
+            else:
+                p_live = ''
+
+            start = e.get('date_start')
+            if start is not None:
+                p_start = int(start)
+
+            end = e.get('date_end')
+            if end is not None:
+                p_end = int(end)
+
+            p_duration = e.get('duration')
+
+            program = e.get('program')
+            if program is not None:
+                p_title = e['program']['title']
+                p_year = e['program']['year']
+                p_land = e['program']['land']
+                p_desc = e['program']['description']
+                p_desc_long = e['program']['description_long']
+
+            now = int(datetime.timestamp(datetime.now())) * 1000
+
+            if p_start <= now <= p_end:
+                epg_data.append([ch_id, ch_code, p_live, p_start, p_end, p_duration, p_title, p_year, p_land, p_desc, p_desc_long])
+
+    return epg_data
+
+def channel_array_gen(retry=0):
+    retry += 1
+
+    url = "https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations"
+
+    response = get_requests(url)
+    try:
+        ch_data = response['data']
+    except:
+        time.sleep(1)
+        if retry < 6:
+            return channel_array_gen(retry)
+        else:
+            raise source_exception('Error loading list')
 
     ar_chan = []
     for c in ch_data:
+        ch_id = c['id']
         ch_code = c['code']
-        ch_name = c['name'].replace('EPG - ', '')
 
-        if ch_code == '':
-            ch_id = c['id']
-            ch_img = c['image_square']['url'].replace('{width}','1000').replace('{height}','500')
-        else:
-            ch_id = ''
-            ch_img = c['image_square']['url'].replace('{width}','140').replace('{height}','140')
-        ar_chan.append([ch_code, ch_name, ch_img, ch_id])
-    return ar_chan
+        ch_name = c['name'].replace('EPG - ', '')
+        ch_name = re.sub(r"([0-9]+(\.[0-9]+)?)",r" \1", ch_name).strip().replace('  ', ' ')
+        
+        ch_img = c['image_square']['url'].replace('{width}','500').replace('{height}','500')
     
+        ar_chan.append([ch_code, ch_name, ch_img, ch_id])
+
+    return ar_chan
+
 def channels_gen():
-    channels = channelArrayGen()
+    channels = channel_array_gen()
+    epg_data = get_epgs()
+
     for ch in channels:
-        li = xbmcgui.ListItem(ch[1])
+        p_live = ''
+        p_start = ''
+        p_end = ''
+        p_duration = ''
+        p_title = ''
+        p_year = ''
+        p_land = ''
+        p_desc = ''
+        p_desc_long = ''
+
+        for epg in epg_data:
+            if ch[0] == epg[1]:
+                p_live = epg[2]
+                p_start = epg[3]
+                p_end = epg[4]
+                p_duration = epg[5]
+                p_title = epg[6]
+                p_year = epg[7]
+                p_land = epg[8]
+                p_desc = epg[9]
+                p_desc_long = epg[10]
+
+        if p_title != '':
+            title = ' - ' + p_title
+        else:
+            title = ''
+
+        li = xbmcgui.ListItem(ch[1] + title)
         li.setProperty("IsPlayable", 'true')
-        li.setInfo(type='video', infoLabels={'title': ch[1],'sorttitle': ch[1],'plot': ''})
+        li.setInfo(type='video', infoLabels={'title': ch[1] + ' - ' + p_title, 'sorttitle': title, 'tvshowtitle':title, 'status': p_live, 'year': p_year, 'plotoutline': p_desc, 'plot': p_desc_long, 'duration':p_duration})
         if ch[2]:
-            li.setArt({'thumb': ch[2], 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+            li.setArt({'thumb': ch[2], 'poster': ch[2], 'banner': banner, 'icon': icon, 'fanart': fanart})
         else:
             li.setArt({'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
-        url_ch = build_url({'mode':'live','action':'play','chCode':ch[0],'chID':ch[3]})
+        url_ch = build_url({'mode':'live','action':'play','ch_code':ch[0],'ch_id':ch[3]})
         xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=False)
     xbmcplugin.endOfDirectory(addon_handle)
 
-def applyTimeShift(url_stream, keepBeginTime=True):
+def replay_channels_array_gen(retry=0):
+    retry += 1
+
+    url = "https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations"
+
+    response = get_requests(url)
+    try:
+        ch_data = response['data']
+    except:
+        time.sleep(1)
+        if retry < 6:
+            return replay_channels_array_gen(retry)
+        else:
+            raise source_exception('Error loading list')
+
+    ar_chan = []
+
+    for c in ch_data:
+        ch_code = c['code']
+        ch_name = c['name'].replace('EPG - ', '')
+        
+        ch_name = re.sub(r"([0-9]+(\.[0-9]+)?)",r" \1", ch_name).strip().replace('  ', ' ')
+
+        ch_id = c['id']
+        ch_img = c['image_square']['url'].replace('{width}','500').replace('{height}','500')
+
+        ar_chan.append([ch_code, ch_name, ch_img, ch_id])
+        
+    return ar_chan
+
+def replay_channels_gen():
+    channels = replay_channels_array_gen()
+    for ch in channels:
+        li = xbmcgui.ListItem(ch[1])
+        li.setProperty("IsPlayable", 'true')
+        li.setInfo(type='video', infoLabels={'title': ch[1], 'sorttitle': ch[1], 'plot': ''})
+        if ch[2]:
+            li.setArt({'thumb': ch[2], 'poster': ch[2], 'banner': banner, 'icon': icon, 'fanart': fanart})
+        else:
+            li.setArt({'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+        url_ch = build_url({'mode':'replay','action':'date','ch_code':ch[0]})
+        xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
+    xbmcplugin.endOfDirectory(addon_handle)
+
+def replay_calendar_gen(ch_code):
+    time_now = int(time.time())
+    
+    ar_date = []
+    i = 0
+    while i <= 6:
+        day = time_now - i * 24 * 60 * 60
+        ar_date.append(get_date(day))
+        i = i + 1
+    
+    for date in ar_date:
+        li = xbmcgui.ListItem(date)
+        li.setProperty("IsPlayable", 'true')
+        li.setInfo(type='video', infoLabels={'title': date, 'sorttitle': date, 'plot': ''})
+        li.setArt({'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+        url_ch = build_url({'mode':'replay', 'action':'prog', 'date':date, 'ch_code':ch_code})
+        xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
+    xbmcplugin.endOfDirectory(addon_handle)
+
+def add_zero(x): 
+    if x <= 9:
+        return '0' + str(x)
+    else:
+        return str(x)
+
+def get_date(x):
+    ts = time.localtime(x)
+    return str(ts.tm_year) + '-' + str(add_zero(ts.tm_mon)) + '-' + str(add_zero(ts.tm_mday))
+    
+def replay_programs_array_gen(ch_code, date, retry=0):
+    retry += 1
+
+    url = 'https://tvpstream.tvp.pl/api/tvp-stream/program-tv/index?station_code={code}&date={date}'.format(code=ch_code, date=date)
+
+    response = get_requests(url)
+    try:
+        pr_data = response['data']
+    except:
+        time.sleep(1)
+        if retry < 6:
+            return replay_programs_array_gen(ch_code, date, retry)
+        else:
+            raise source_exception('Error loading list')
+
+    ar_prog = []
+    time_now = int(time.time()) * 1000
+
+    def hm(t):
+        ts = time.localtime(t / 1000)
+        return add_zero(ts.tm_hour) + ':' + add_zero(ts.tm_min)
+
+    for p in pr_data:
+        if p['date_start'] < time_now:
+            p_id = p['record_id']
+            ch_code = p['station_code']
+            p_title = '[' + hm(p['date_start']) + '-' + hm(p['date_end']) + '] ' + p['title']
+            p_desc = p['description']
+            ar_prog.append([p_id, ch_code, p_title, p_desc])
+
+    return ar_prog
+
+def replay_programs_gen(ch_code, date):
+    programs = replay_programs_array_gen(ch_code, date)
+    for p in programs:
+        li = xbmcgui.ListItem(p[2])
+        li.setProperty("IsPlayable", 'true')
+        li.setInfo(type='video', infoLabels={'title': p[2],'sorttitle': p[2],'plot': p[3]})
+        li.setArt({'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+        url_ch = build_url({'mode':'replay','action':'play','ch_code':p[1],'prog_id':p[0]})
+        xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=False)
+    xbmcplugin.endOfDirectory(addon_handle)
+
+def get_replay_program_streams(ch_code, prog_id, retry=0):
+    retry += 1
+
+    url = ' https://sport.tvp.pl/api/tvp-stream/stream/data?station_code={code}&record_id={prog}'.format(code=ch_code, prog=prog_id)
+
+    response = get_requests(url)
+    try:
+        replay = response['data']
+    except:
+        time.sleep(1)
+        if retry < 6:
+            return get_replay_program_streams(code, prog_id, retry)
+        else:
+            raise source_exception('Error loading list')
+
+    urls = replay['stream_url']
+    response = get_requests(urls)
+    streams = response['formats']
+
+    return streams
+
+def apply_timeshift(url_stream, keep_begin_time=True):
     if url_stream is not None:
         time_delta = int(addon.getSetting('timeshift_delta_value'))
         if addon.getSetting('timeshift_type') == 'O stałą wartość' and time_delta > 0 and time_delta <= 10080:
-            url_stream = adjustTimeShiftArguments(url_stream, beginTime=generateBeginTimeFromTimeDelta(time_delta))
+            url_stream = adjust_timeshift_args(url_stream, begin_time=gen_begin_time_from_timedelta(time_delta))
         else:
-            url_stream = adjustTimeShiftArguments(url_stream, keepBeginTime=keepBeginTime)
+            url_stream = adjust_timeshift_args(url_stream, keep_begin_time=keep_begin_time)
+
         return url_stream
 
-def adjustTimeShiftArguments(inputUrl, beginTime = None, keepBeginTime = True):
-    inputUrlParsed = urllib_parse.urlparse(inputUrl)
-    inputParams = dict(urllib_parse.parse_qsl(inputUrlParsed.query))
+def adjust_timeshift_args(inputUrl, begin_time = None, keep_begin_time = True):
+    input_url_parsed = urllib_parse.urlparse(inputUrl)
+    input_params = dict(urllib_parse.parse_qsl(input_url_parsed.query))
     
-    if not keepBeginTime:
-        del inputParams['begin']
+    if not keep_begin_time:
+        del input_params['begin']
     
-    if beginTime is not None:
-        inputParams['begin'] = beginTime
+    if begin_time is not None:
+        input_params['begin'] = begin_time
 
-    inputParams['end'] = ''
+    input_params['end'] = ''
 
-    inputUrlList = list(inputUrlParsed)
-    inputUrlList[4] = urllib_parse.urlencode(inputParams)
+    inputUrlList = list(input_url_parsed)
+    inputUrlList[4] = urllib_parse.urlencode(input_params)
 
     return urllib_parse.urlunparse(inputUrlList)
 
-def generateBeginTimeFromTimeDelta(timeDeltaInMinutes):
+def gen_begin_time_from_timedelta(delta_min):
     time_now = int(time.time())
-    begin_timestamp = time_now-timeDeltaInMinutes * 60
+
+    begin_timestamp = time_now-delta_min * 60
     utc_begin_time_object = datetime.datetime.utcfromtimestamp(begin_timestamp)
     time_format_pattern = '%Y%m%dT%H%M%S'
+    
     return utc_begin_time_object.strftime(time_format_pattern)
 
-def playStream(url_stream, protocol, mimeType=None):
+def get_stream_of_type(streams, force=False):
+    for s in streams:
+        if (s['mimeType'] == 'application/dash+xml' and not ('mobile' in s['url'])):
+            url_stream = s['url']
+            protocol = 'mpd'
+            mime_type = 'application/xml+dash'
+
+        elif (s['mimeType'] == 'application/x-mpegurl' and not ('mobile' in s['url'])):
+            url_stream = s['url']
+            protocol = 'hls'
+            mime_type = 'application/x-mpegurl'
+
+        elif (s['mimeType'] == 'video/mp2t' and not ('mobile' in s['url'])):
+            url_stream = s['url']
+            protocol = 'hls'
+            mime_type = 'video/mp2t'
+
+    return url_stream, protocol, mime_type
+
+def play_programme(code, prog_id):
+    streams = get_replay_program_streams(code, prog_id)
+    url_stream, protocol, mime_type = get_stream_of_type(streams)
+    play(url_stream, protocol, mime_type)
+
+def play_channel(code, ch_id, retry=0):
+    retry += 1
+
+    url ='https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={code}'.format(code=code)
+
+    response = get_requests(url)
+    try:
+        live = response['data']
+        if live:
+            urls = live['stream_url']
+            response = get_requests(urls)
+
+            streams = response['formats']
+
+    except:
+        time.sleep(1)
+        if retry < 6:
+            return play_channel(code, ch_id, retry)
+        else:
+            raise source_exception('Error loading list')
+
+    url_stream, protocol, mime_type = get_stream_of_type(streams)
+    url_stream = apply_timeshift(url_stream)
+    play(url_stream, protocol, mime_type)
+
+def play(url_stream, protocol, mime_type=None):
     import inputstreamhelper
     PROTOCOL = protocol
 
     is_helper = inputstreamhelper.Helper(PROTOCOL)
     if is_helper.check_inputstream():
         play_item = xbmcgui.ListItem(path=url_stream)
-        if mimeType is not None:
-            play_item.setMimeType(mimeType)
+        if mime_type is not None:
+            play_item.setMimeType(mime_type)
         play_item.setContentLookup(False)
         if sys.version_info >= (3,0,0):
             play_item.setProperty('inputstream', is_helper.inputstream_addon)
@@ -238,490 +510,29 @@ def playStream(url_stream, protocol, mimeType=None):
       
     xbmcplugin.setResolvedUrl(addon_handle, True, listitem=play_item)
 
-def PlayChannel(chCode, chId, retry=0):
-    retry += 1
-
-    if chCode != '':
-        data = {
-            'operationName': None,
-            'variables': {
-                'stationCode': str(chCode),
-            },
-            'extensions': {
-                'persistedQuery': {
-                    'version': 1,
-                    'sha256Hash': '0b9649840619e548b01c33ae4bba6027f86eac5c48279adc04e9ac2533781e6b',
-            },
-            
-            'query': """
-        query ($stationCode: String!) {
-          currentProgramAsLive(stationCode: $stationCode) {
-            id
-            title
-            subtitle
-            date_start
-            date_end
-            date_current
-            description
-            description_long
-            description_akpa_long
-            description_akpa_medium
-            description_akpa
-            plrating
-            npvr
-            formats {
-              mimeType
-              url
-              __typename
-            }
-            __typename
-          }
-        }
-        }""" 
-        }
-        }
-
-        response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', data=data)
-        try:
-            live = response['data']['currentProgramAsLive']
-        except:
-            live = None
-
-        if live is not None:
-            streams = response['data']['currentProgramAsLive']['formats']
-            url_stream = getStreamOfType(streams,'application/dash+xml')
-            url_stream = applyTimeShift(url_stream)
-            playStream(url_stream, 'mpd', 'application/xml+dash')
-
-        else:
-            anyProgramme = replayProgramsArrayGen(chCode, getDate(int(time.time())))[0]
-            streams = getReplayProgramStreams(chCode, anyProgramme[0])
-            url_stream = getStreamOfType(streams, 'application/dash+xml')
-            url_stream = applyTimeShift(url_stream, False)
-            playStream(url_stream, 'mpd', 'application/xml+dash')
-    else:
-        data = {
-            'operationName': None,
-            'variables': {
-                'liveId': '{0}'.format(chId),
-            },
-            'extensions': {
-                'persistedQuery': {
-                    'version': 1,
-                    'sha256Hash': 'f2fd34978dc0aea320ba2567f96aa72a184ca2d1e55b2a16dc0915bd03b54fb3',
-                },
-            
-            'query': """
-        query ($liveId: String!) {
-          getLive(liveId: $liveId) {
-            error
-            data {
-              type
-              title
-              subtitle
-              lead
-              label {
-                type
-                text
-                __typename
-              }
-              src
-              vast_url
-              duration_min
-              subtitles {
-                src
-                autoDesc
-                lang
-                text
-                __typename
-              }
-              is_live
-              formats {
-                mimeType
-                totalBitrate
-                videoBitrate
-                audioBitrate
-                adaptive
-                url
-                downloadable
-                __typename
-              }
-              web_url
-              __typename
-            }
-            __typename
-          }
-        }""" 
-        }
-        }
-
-        response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', data=data)
-        try:
-            streams = response['data']['getLive']['data'][0]['formats']
-            url_stream = getStreamOfType(streams, 'application/x-mpegurl')
-            playStream(url_stream, 'hls', 'application/x-mpegurl')
-        except:
-            time.sleep(1)
-            if retry < 6:
-                PlayChannel(chCode, chId, retry)
-            else:
-                raise SourceException('Error loading list')
-
-def replayChannelsArrayGen(retry=0): 
-    retry += 1
-
-    data = {
-        'operationName': None,
-        'variables': {},
-        'extensions': {
-            'persistedQuery': {
-                'version': 1,
-                'sha256Hash': '18a5c6b18b6443bd317f69ff092b6d7068733640159eaf216c35f583ea73ac23',
-            },
-        
-        'query': """
-    {
-      getStations {
-        items {
-          name
-          code
-          image_square {
-            url
-            __typename
-          }
-          background_color
-          __typename
-        }
-        __typename
-      }
-    }""" 
-    }
-    }
-
-    response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', data=data)
-    try:
-        ch_data = response['data']['getStations']['items']
-    except:
-        time.sleep(1)
-        if retry < 6:
-            return replayChannelsArrayGen(retry)
-        else:
-            raise SourceException('Error loading list')
-
-    ar_chan = []
-    for ch in ch_data:
-        chName = ch['name']
-        chCode = ch['code']
-        ar_chan.append([chName,chCode])
-    return ar_chan
-    
-def replayChannelsGen():
-    array = channelArrayGen()
-    channels = replayChannelsArrayGen()
-
-    for ch in channels:
-        li = xbmcgui.ListItem(ch[0])
-        li.setProperty("IsPlayable", 'true')
-        li.setInfo(type='video', infoLabels={'title': ch[0],'sorttitle': ch[0],'plot': ''})
-
-        img = [l[2] for l in array if l[1] == ch[0]][0]
-        img = img if img else icon
-
-        if img:
-            li.setArt({'thumb': img, 'poster': img, 'banner': banner, 'icon': icon, 'fanart': fanart})
-
-        url_ch = build_url({'mode':'replay','action':'date','chCode':ch[1]})
-        xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
-    xbmcplugin.endOfDirectory(addon_handle)
-
-def addZero(x): 
-        if x <= 9:
-            return '0' + str(x)
-        else:
-            return str(x)
-
-def getDate(x):
-    ts = time.localtime(x)
-    return str(ts.tm_year) + '-' + str(addZero(ts.tm_mon)) + '-' + str(addZero(ts.tm_mday))
-
-def replayCalendarGen(chCode):
-    time_now = int(time.time())
-    
-    ar_date = []
-    i = 0
-    while i <= 6:
-        day = time_now - i * 24 * 60 * 60
-        ar_date.append(getDate(day))
-        i = i + 1
-    
-    for d in ar_date:
-        li = xbmcgui.ListItem(d)
-        li.setProperty("IsPlayable", 'true')
-        li.setInfo(type='video', infoLabels={'title': d,'sorttitle': d,'plot': ''})
-        #li.setArt({'thumb': ch[2], 'poster': ch[2], 'banner': ch[2], 'icon': ch[2], 'fanart': ''})
-        url_ch = build_url({'mode':'replay','action':'prog','date':d,'chCode':chCode})
-        xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=True)
-    xbmcplugin.endOfDirectory(addon_handle)
-    
-def replayProgramsArrayGen(chCode, date, retry=0):
-    retry += 1
-
-    data = {
-        'operationName': None,
-        'variables': {
-            'station_code': '{0}'.format(chCode),
-            'date': '{0}'.format(date),
-            'categorytvp': '',
-        },
-        'extensions': {
-            'persistedQuery': {
-                'version': 1,
-                'sha256Hash': '5750d5b161a9ac4e18ae0a5c789d460763ed2bc0835446df9be712017965f8c5',
-            },
-        
-        'query': """
-    query ($station_code: String, $date: String, $categorytvp: String) {
-      getProgramsFromStation(
-        station_code: $station_code
-        date: $date
-        categorytvp: $categorytvp
-      ) {
-        total_count
-        items {
-          id
-          record_id
-          title
-          date_start
-          date_end
-          duration
-          station_code
-          description
-          description_long
-          program {
-            has_video_vod
-            website_id
-            cms_id
-            id
-            title
-            year
-            lang
-            image {
-              type
-              title
-              point_of_origin
-              url
-              width
-              height
-              description
-              __typename
-            }
-            program_type {
-              id
-              image_logo {
-                type
-                title
-                point_of_origin
-                url
-                width
-                height
-                description
-                __typename
-              }
-              title
-              __typename
-            }
-            cycle {
-              id
-              title
-              image_logo {
-                type
-                title
-                point_of_origin
-                url
-                width
-                height
-                description
-                __typename
-              }
-              __typename
-            }
-            __typename
-          }
-          station {
-            id
-            name
-            code
-            image {
-              type
-              title
-              point_of_origin
-              url
-              width
-              height
-              description
-              __typename
-            }
-            image_square {
-              type
-              title
-              point_of_origin
-              url
-              width
-              height
-              description
-              __typename
-            }
-            background_color
-            __typename
-          }
-          url
-          url_canonical
-          categories {
-            id
-            category_type
-            title
-            __typename
-          }
-          akpa_attributes
-          plrating
-          __typename
-        }
-        __typename
-      }
-    }""" 
-    }
-    }
-
-    response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', data=data)
-    try:
-        pr_data = response['data']['getProgramsFromStation']['items']
-    except:
-        time.sleep(1)
-        if retry < 6:
-            return replayProgramsArrayGen(chCode, date, retry)
-        else:
-            raise SourceException('Error loading list')
-
-    ar_prog = []
-    time_now = int(time.time()) * 1000
-    def hm(t):
-        ts = time.localtime(t / 1000)
-        return addZero(ts.tm_hour) + ':' + addZero(ts.tm_min)
-    for p in pr_data:
-        if p['date_start'] < time_now:
-            pID = p['record_id']
-            chCode = p['station_code']
-            pTitle = '[' + hm(p['date_start']) + '-' + hm(p['date_end']) + '] ' + p['title']
-            pDescr = p['description']
-            ar_prog.append([pID, chCode, pTitle, pDescr])
-
-    return ar_prog
-    
-def replayProgramsGen(chCode,date):
-    programs = replayProgramsArrayGen(chCode, date)
-    for p in programs:
-        li = xbmcgui.ListItem(p[2])
-        li.setProperty("IsPlayable", 'true')
-        li.setInfo(type='video', infoLabels={'title': p[2],'sorttitle': p[2],'plot': p[3]})
-        li.setArt({'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
-        url_ch = build_url({'mode':'replay','action':'play','chCode':p[1],'progID':p[0]})
-        xbmcplugin.addDirectoryItem(handle=addon_handle, url=url_ch, listitem=li, isFolder=False)
-    xbmcplugin.endOfDirectory(addon_handle)
-
-def getReplayProgramStreams(chCode, progID, retry=0):
-    retry += 1
-
-    data = {
-        'operationName': None,
-        'variables': {
-            'programId': '{0}'.format(progID),
-            'stationCode': '{0}'.format(chCode),
-        },
-        'extensions': {
-            'persistedQuery': {
-                'version': 1,
-                'sha256Hash': '52d98fa9bb2b66075e8d230809fd5d991d16fa6a97719b2b4984797f5a506c4a',
-            },
-        
-        'query': """
-    query ($programId: String!, $stationCode: String!) {
-      programByRecordId(programId: $programId, stationCode: $stationCode) {
-        id
-        title
-        programId
-        program_title
-        subtitle
-        date_start
-        date_end
-        date_current
-        description
-        description_long
-        description_akpa_long
-        description_akpa_medium
-        description_akpa
-        plrating
-        formats {
-          mimeType
-          url
-          __typename
-        }
-        __typename
-      }
-    }""" 
-    }
-    }
-
-    response = getRequests('https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql', data=data)
-    try:
-        streams = response['data']['programByRecordId']['formats']
-    except:
-        time.sleep(1)
-        if retry < 6:
-            return getReplayProgramStreams(chCode, progID, retry)
-        else:
-            raise SourceException('Error loading list')
-
-    return streams
-
-def getStreamOfType(streams, mimeType):
-    url_stream = None
-    for s in streams:
-        if (s['mimeType'] == mimeType and not ('mobile' in s['url'])):
-            url_stream = s['url']
-            break
-
-    if url_stream is not None:
-        return url_stream
-    else:
-        xbmcgui.Dialog().notification('[B]Błąd[/B]', 'Połączenie do serwisu nie powiodło się', xbmcgui.NOTIFICATION_INFO, 6000, False)
-        return
-    
-def PlayProgram(chCode,progID):
-    streams = getReplayProgramStreams(chCode, progID)
-    url_stream = getStreamOfType(streams,'application/x-mpegurl')
-    playStream(url_stream, 'hls')
-
 def generate_m3u(c):
     if file_name == '' or path_m3u == '':
-        xbmcgui.Dialog().notification('TVP GO', 'Ustaw nazwe pliku oraz katalog docelowy.', xbmcgui.NOTIFICATION_ERROR)
+        xbmcgui.Dialog().notification('TVP GO', 'Ustaw nazwe pliku oraz katalog docelowy', xbmcgui.NOTIFICATION_ERROR)
         return
 
-    xbmcgui.Dialog().notification('TVP GO', 'Generuje liste M3U.', xbmcgui.NOTIFICATION_INFO)
+    xbmcgui.Dialog().notification('TVP GO', 'Generuje liste M3U', xbmcgui.NOTIFICATION_INFO)
     data = '#EXTM3U\n'
+
     for item in c:
-        channelCode = item[0]
-        channelName = item[1]
-        channelLogo = item[2]
-        if channelCode == '':
-            channelID = item[3]
+        ch_code = item[0]
+        ch_name = item[1]
+        ch_logo = item[2]
+        if ch_code == '':
+            ch_id = item[3]
         else:
-            channelID = ''
-        data += '#EXTINF:0 tvg-id="%s" tvg-logo="%s" group-title="TVPGO",%s\nplugin://plugin.video.tvpgo?mode=list&chCode=%s&chID=%s\n' % (channelName,channelLogo,channelName,channelCode,channelID)
+            ch_id = ''
+        data += '#EXTINF:0 tvg-id="{0}" tvg-logo="{1}" group-title="TVPGO",{2}\nplugin://plugin.video.tvpgo?mode=list&ch_code={3}&ch_id={4}\n'.format(ch_name, ch_logo, ch_name, ch_code, ch_id)
 
     f = xbmcvfs.File(path_m3u + file_name, 'w')
     f.write(data)
     f.close()
-    xbmcgui.Dialog().notification('TVP GO', 'Wygenerowano listę M3U.', xbmcgui.NOTIFICATION_INFO)
+
+    xbmcgui.Dialog().notification('TVP GO', 'Wygenerowano listę M3U', xbmcgui.NOTIFICATION_INFO)
 
 if __name__ == '__main__':
     mode = params.get('mode', None)
@@ -732,33 +543,34 @@ if __name__ == '__main__':
             if action == 'getChannels':
                 channels_gen()
             if action == 'play':
-                channel_code = params.get('chCode', '')
-                channel_id = params.get('chID', '')
-                PlayChannel(channel_code,channel_id)
+                channel_code = params.get('ch_code', '')
+                channel_id = params.get('ch_id', '')
+                play_channel(channel_code, channel_id)
+                
         if mode == 'replay':
             if action == 'getChannels':
-                replayChannelsGen()
+                replay_channels_gen()
             if action == 'date':
-                channel_code = params.get('chCode', '')
-                replayCalendarGen(channel_code)
+                channel_code = params.get('ch_code', '')
+                replay_calendar_gen(channel_code)
             if action == 'prog':
-                channel_code = params.get('chCode', '')
+                channel_code = params.get('ch_code', '')
                 date = params.get('date', '')
-                replayProgramsGen(channel_code,date)
+                replay_programs_gen(channel_code, date)
             if action == 'play':
-                channel_code = params.get('chCode', '')
-                program_id = params.get('progID', '')
+                channel_code = params.get('ch_code', '')
+                program_id = params.get('prog_id', '')
                 date = params.get('date', '')
-                PlayProgram(channel_code,program_id)
+                play_programme(channel_code, program_id)
+
         if mode == 'list':
-            channel_code = params.get('chCode', '')
-            channel_id = params.get('chID', '')
-            PlayChannel(channel_code,channel_id)
+            channel_code = params.get('ch_code', '')
+            channel_id = params.get('ch_id', '')
+            play_channel(channel_code, channel_id)
             
     else:
         if not action:
             main_menu()
-
         if action == 'BUILD_M3U':
-            ar_chan = channelArrayGen()   
+            ar_chan = channel_array_gen()   
             generate_m3u(ar_chan)
