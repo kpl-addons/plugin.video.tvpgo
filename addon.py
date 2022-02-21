@@ -226,6 +226,8 @@ def channel_array_gen(retry=0):
     return ar_chan
 
 def channels_gen():
+    from datetime import datetime
+
     channels = channel_array_gen()
     epg_data = get_epgs()
 
@@ -252,14 +254,23 @@ def channels_gen():
                 p_desc = epg[9]
                 p_desc_long = epg[10]
 
-        if p_title != '':
-            title = ' - ' + p_title
-        else:
-            title = ''
 
-        li = xbmcgui.ListItem(ch[1] + title)
+        if p_start != '' and p_end != '':
+            dt_start = datetime.fromtimestamp(int(p_start) / 1000)
+            dt_end = datetime.fromtimestamp(int(p_end) / 1000)
+
+            start = dt_start.strftime("%H:%M")
+            end = dt_end.strftime("%H:%M")
+
+            if p_title != '':
+                title = '[{0} - {1}] - {2}'.format(start, end, p_title)
+                
+        else:
+            title = ch[1]
+
+        li = xbmcgui.ListItem(title)
         li.setProperty("IsPlayable", 'true')
-        li.setInfo(type='video', infoLabels={'title': ch[1] + ' - ' + p_title, 'sorttitle': title, 'tvshowtitle':title, 'status': p_live, 'year': p_year, 'plotoutline': p_desc, 'plot': p_desc_long, 'duration':p_duration})
+        li.setInfo(type='video', infoLabels={'title': title, 'sorttitle': title, 'tvshowtitle': title, 'status': p_live, 'year': p_year, 'plotoutline': p_desc, 'plot': p_desc_long, 'duration': p_duration})
         if ch[2]:
             li.setArt({'thumb': ch[2], 'poster': ch[2], 'banner': banner, 'icon': icon, 'fanart': fanart})
         else:

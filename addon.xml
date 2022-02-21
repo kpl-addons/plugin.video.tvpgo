@@ -1,5 +1,5 @@
-<?xml version="1.1.8" encoding="UTF-8" standalone="yes" ?>
-<addon id="plugin.video.tvpgo" name="TVP GO" version="1.1.8" provider-name="Kodi-PL">
+<?xml version="1.1.9" encoding="UTF-8" standalone="yes" ?>
+<addon id="plugin.video.tvpgo" name="TVP GO" version="1.1.9" provider-name="Kodi-PL">
 <requires>
 	<import addon="script.module.requests" />
 	<import addon="script.module.inputstreamhelper" />
@@ -11,14 +11,12 @@
 	<provides>video</provides>
 </extension>
 <extension point="xbmc.addon.metadata">
-	<summary lang="en_GB">[COLOR gold]Kanały TVP na żywo bezpłatnie w KODI[/COLOR]</summary>
+	<summary lang="en">[COLOR gold]Kanały TVP na żywo bezpłatnie w KODI[/COLOR]</summary>
 	<description lang="pl">[B]TVP GO to nowe możliwości:[/B][CR]• Kanały na żywo - dostęp do kanałów Telewizji Polskiej w dowolnym miejscu i czasie[CR]• Od początku – możliwość uruchomienia trwającego programu od początku[CR]• 7 dniowa historia – dostęp do audycji, które były emitowane w ciągu ostatnich 7 dni[CR]• Zatrzymaj/Wznów – zatrzymaj program i wznów jego oglądanie w wygodnym dla Ciebie czasie</description>
-	<disclaimer lang="pl">tvpgo
-	</disclaimer>
-	<summary lang="en">tvpgo</summary>
-	<description lang="en">tvpgo</description>
-	<disclaimer lang="en_GB">This add-on is unoffical and is not endorsed or supported by any of the services provided in any way. Any trademarks used belong to their owning companies and organisations.</disclaimer>
-    <disclaimer lang="pl_PL">Wtyczka nie jest oficjalna koncesjonowanego dostawy, oraz nie jest przez niego zatwierdzona i wspierana. Wszelkie użyte znaki handlowe należą do firm i organizacji podmiotu koncesjonowanego.</disclaimer>
+	<summary lang="en">TVP GO</summary>
+	<summary lang="pl">TVP GO</summary>
+	<disclaimer lang="en">This add-on is unoffical and is not endorsed or supported by any of the services provided in any way. Any trademarks used belong to their owning companies and organisations.</disclaimer>
+    <disclaimer lang="pl">Wtyczka nie jest oficjalna koncesjonowanego dostawy, oraz nie jest przez niego zatwierdzona i wspierana. Wszelkie użyte znaki handlowe należą do firm i organizacji podmiotu koncesjonowanego.</disclaimer>
 	<language>pl</language>
 	<platform>all</platform>
 	<license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
@@ -27,7 +25,10 @@
 		<icon>icon.png</icon>
 		<fanart>fanart.jpg</fanart>
 	</assets>
-	<news>v1.1.8 (2022-02-21)
+	<news>v1.1.9 (2022-02-21)
+- Added start and end time for live channels.
+
+v1.1.8 (2022-02-21)
 - Initial version.
 </news>
 	<reuselanguageinvoker>true</reuselanguageinvoker>
