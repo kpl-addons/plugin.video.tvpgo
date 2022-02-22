@@ -1,0 +1,173 @@
+# XBMC Media Center language file
+# Addon Name: TVP GO
+# Addon id: plugin.video.tvpgo
+# Addon Provider: Kodi-PL
+msgid ""
+msgstr ""
+"Project-Id-Version: XBMC Addons\n"
+"Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: XBMC Translation Team\n"
+"Language-Team: English (http://www.transifex.com/projects/p/xbmc-addons/language/en/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgctxt "#30000"
+msgid "Timeshift settings"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Timeshift format"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Set timeshift type"
+msgstr ""
+
+msgctxt "#30003"
+msgid "To the beginning of the current broadcast"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Fixed value"
+msgstr ""
+
+msgctxt "#30005"
+msgid "Set fixed value"
+msgstr ""
+
+msgctxt "#30006"
+msgid "Set timeshift delta value"
+msgstr ""
+
+msgctxt "#30007"
+msgid "View settings"
+msgstr ""
+
+msgctxt "#30008"
+msgid "Default"
+msgstr ""
+
+msgctxt "#30009"
+msgid "Select program display format"
+msgstr ""
+
+msgctxt "#30010"
+msgid "Set Auto-view"
+msgstr ""
+
+msgctxt "#30011"
+msgid "Sort by"
+msgstr ""
+
+msgctxt "#30012"
+msgid "Amount of items on page"
+msgstr ""
+
+msgctxt "#30013"
+msgid "Select channel name color scheme"
+msgstr ""
+
+msgctxt "#30014"
+msgid "Lightblue"
+msgstr ""
+
+msgctxt "#30015"
+msgid "Darkblue"
+msgstr ""
+
+msgctxt "#30016"
+msgid "Lightgreen"
+msgstr ""
+
+msgctxt "#30017"
+msgid "Red"
+msgstr ""
+
+msgctxt "#30018"
+msgid "Violet"
+msgstr ""
+
+msgctxt "#30019"
+msgid "Gold"
+msgstr ""
+
+msgctxt "#30020"
+msgid "Brown"
+msgstr ""
+
+msgctxt "#30021"
+msgid "Create M3U playlist"
+msgstr ""
+
+msgctxt "#30022"
+msgid "Set filename and destination directory"
+msgstr ""
+
+msgctxt "#30023"
+msgid "File name"
+msgstr ""
+
+msgctxt "#30024"
+msgid "Destination directory"
+msgstr ""
+
+msgctxt "#30025"
+msgid "Generate playlist"
+msgstr ""
+
+msgctxt "#30026"
+msgid "Alphabetic order"
+msgstr ""
+
+msgctxt "#30027"
+msgid "[B]Error[/B]"
+msgstr ""
+
+msgctxt "#30028"
+msgid "Connection to the service has failed"
+msgstr ""
+
+msgctxt "#30029"
+msgid "Playlist M3U generated"
+msgstr ""
+
+msgctxt "#30030"
+msgid "List format"
+msgstr ""
+
+msgctxt "#30031"
+msgid "[Time duration] - Program title"
+msgstr ""
+
+msgctxt "#30032"
+msgid "Program title - [Time duration]"
+msgstr ""
+
+msgctxt "#30033"
+msgid "Episodes"
+msgstr ""
+
+msgctxt "#30034"
+msgid "Files"
+msgstr ""
+
+msgctxt "#30035"
+msgid "Movies"
+msgstr ""
+
+msgctxt "#30036"
+msgid "TV shows"
+msgstr ""
+
+msgctxt "#30037"
+msgid "Videos"
+msgstr ""
+
+msgctxt "#30038"
+msgid "Adaptive"
+msgstr ""
