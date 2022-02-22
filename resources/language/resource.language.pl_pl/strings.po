@@ -98,7 +98,7 @@ msgstr "Złoty"
 
 msgctxt "#30020"
 msgid "Brown"
-msgstr "Złoto"
+msgstr "Brązowy"
 
 msgctxt "#30021"
 msgid "Create M3U playlist"
