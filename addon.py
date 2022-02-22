@@ -76,7 +76,10 @@ file_name = addon.getSetting('tvpgo_filename')
 path_m3u = addon.getSetting('tvpgo_path_m3u')
 
 mode = addon.getSetting('mode')
-color = int(addon.getSetting('tvpgo_color'))
+try:
+    color = int(addon.getSetting('tvpgo_color'))
+except:
+    color = 0
 colors = ['', 'skyblue', 'dodgerblue', 'lightgreen', 'indianred', 'thistle', 'goldenrod', 'sandybrown', 'button_focus']
 
 format_list = addon.getSetting('tvpgo_format')
@@ -87,7 +90,10 @@ else:
 
 quantity = addon.getSetting('tvpgo_quantity')
 
-view = int(addon.getSetting('tvpgo_auto_view'))
+try:
+    view = int(addon.getSetting('tvpgo_auto_view'))
+except:
+    view = 0
 views = ['default', 'episodes', 'files', 'movies', 'tvshows', 'videos']
 
 ordered = addon.getSetting('tvpgo_sort')
@@ -259,6 +265,9 @@ def channel_array_gen(retry=0):
     
         ar_chan.append([ch_code, ch_name, ch_img, ch_id])
 
+    if order == 1:
+        ar_chan = sorted(ar_chan, key=lambda x: x[1])
+
     return ar_chan
 
 def channels_gen():
@@ -352,6 +361,9 @@ def replay_channels_array_gen(retry=0):
         ch_img = c['image_square']['url'].replace('{width}','500').replace('{height}','500')
 
         ar_chan.append([ch_code, ch_name, ch_img, ch_id])
+
+    if order == 1:
+        ar_chan = sorted(ar_chan, key=lambda x: x[1])
         
     return ar_chan
 
