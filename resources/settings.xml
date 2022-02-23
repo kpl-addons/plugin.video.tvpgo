@@ -18,7 +18,7 @@
         <setting label="30023" type="text" id="tvpgo_filename" default="tvp_go.m3u"/>
         <setting label="30024" type="folder" id="tvpgo_path_m3u" source="auto" option="writeable"/>
         <setting type="action"
-                 action="RunPlugin(plugin://plugin.video.tvpgo?action=BUILD_M3U)"
+                 action="RunPlugin(plugin://plugin.video.tvpgo/build_m3u)"
                  label="30025"
                  option="close"/>
     </category>

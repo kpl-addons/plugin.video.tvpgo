@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 #   GNU General Public License
 
 #   TVP GO KODI Addon
@@ -43,36 +40,16 @@
 #   SOFTWARE.
 
 import os
-import sys
 from six.moves import urllib_parse
-from libka import SimplePlugin, call
-
-try:
-    from urllib.parse import urlencode, quote_plus, quote, unquote
-except ImportError:
-    from urllib import urlencode, quote_plus, quote, unquote
-import xbmc
+from libka import SimplePlugin, call, L
 import xbmcgui
 import xbmcplugin
-import xbmcaddon
 import xbmcvfs
 import re
 import json
 import time
 from datetime import datetime
 
-base_url = sys.argv[0]
-addon_handle = int(sys.argv[1])
-params = dict(urllib_parse.parse_qsl(sys.argv[2][1:]))
-addon = xbmcaddon.Addon(id='plugin.video.tvpgo')
-file_name = addon.getSetting('tvpgo_filename')
-path_m3u = addon.getSetting('tvpgo_path_m3u')
-
-mode = addon.getSetting('mode')
-try:
-    color = int(addon.getSetting('tvpgo_color'))
-except Exception:
-    color = 0
 colors = ['', 'skyblue', 'dodgerblue', 'lightgreen', 'indianred', 'thistle', 'goldenrod', 'sandybrown', 'button_focus']
 
 format_list = addon.getSetting('tvpgo_format')
@@ -96,7 +73,6 @@ else:
     order = 1
 
 addon_path = xbmcvfs.translatePath(addon.getAddonInfo('path'))
-strings = xbmc.getLocalizedString
 
 thumb = os.path.join(addon_path, 'resources', 'art', 'landscape.png')
 poster = os.path.join(addon_path, 'resources', 'art', 'poster.png')
@@ -108,15 +84,6 @@ timeout = (3, 5)
 
 class SourceException(Exception):
     pass
-
-
-def build_url(query):
-    return base_url + '?' + urllib_parse.urlencode(query)
-
-
-def set_view():
-    if views[view] != 'default':
-        xbmcplugin.setContent(addon_handle, views[view])
 
 
 def add_zero(x):
@@ -132,33 +99,34 @@ def get_date(x):
 
 
 class Main(SimplePlugin):
+
+    def __init__(self):
+        super().__init__()
+        self.color: int = self.setting.get_int('tvpgo_color', 0)
+
     def home(self):
-        action = params.get('action')
-        if action == 'BUILD_M3U':
-            self.generate_m3u(self.channel_array_gen())
-        else:
-            with self.directory() as kdir:
-                kdir.menu('Kanały na żywo', call(self.channels_gen),
-                          info={'title': 'Kanały na żywo', 'sorttitle': 'Kanały na żywo', 'plot': ''},
-                          art={'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
-                kdir.menu('Replay', call(self.replay_channels_gen),
-                          info={'title': 'Replay', 'sorttitle': 'Replay', 'plot': ''},
-                          art={'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+        with self.directory() as kdir:
+            kdir.menu('Kanały na żywo', self.channels_gen,
+                      info={'title': 'Kanały na żywo', 'sorttitle': 'Kanały na żywo', 'plot': ''},
+                      art={'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+            kdir.menu('Replay', self.replay_channels_gen,
+                      info={'title': 'Replay', 'sorttitle': 'Replay', 'plot': ''},
+                      art={'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
 
-    def get_requests(self, url, headers=None, data=None, txt=False):
-        try:
-            if data is not None:
-                response = self.post(url, headers=headers, json=data)
-            else:
-                response = self.get(url, headers=headers)
+    # def get_requests(self, url, headers=None, data=None, txt=False):
+    #     try:
+    #         if data is not None:
+    #             response = self.post(url, headers=headers, json=data)
+    #         else:
+    #             response = self.get(url, headers=headers)
 
-            if not txt:
-                return json.loads(response.text)
-            else:
-                return response.text
-        except Exception:
-            xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-            raise SourceException('Error loading list')
+    #         if not txt:
+    #             return json.loads(response.text)
+    #         else:
+    #             return response.text
+    #     except Exception:
+    #         xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
+    #         raise SourceException('Error loading list')
 
     def get_epgs(self, retry=0):
         p_start = ''
@@ -186,19 +154,18 @@ class Main(SimplePlugin):
             'Accept-Language': 'sv,en;q=0.9,en-GB;q=0.8,en-US;q=0.7,pl;q=0.6,fr;q=0.5',
         }
 
-        response = self.get_requests(url, headers=headers, txt=True)
-
+        response = self.get(url, headers=headers)
         try:
             stations_regex = re.compile(r'window.__stationsProgram\[\d+\]\s=\s(.*?)</script>',
                                         re.MULTILINE | re.DOTALL)
-            finds = stations_regex.findall(response)
-
+            finds = stations_regex.finditer(response)
         except Exception:
             time.sleep(1)
             if retry < 6:
                 return self.get_epgs(retry)
             else:
-                xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
+                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028),
+                                              xbmcgui.NOTIFICATION_INFO, 6000, False)
                 raise SourceException('Error loading list')
 
         epg_data = []
@@ -255,10 +222,8 @@ class Main(SimplePlugin):
 
     def channel_array_gen(self, retry=0):
         retry += 1
-
         url = "https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations"
-
-        response = self.get_requests(url)
+        response = self.jget(url)
         try:
             ch_data = response['data']
         except Exception:
@@ -266,7 +231,7 @@ class Main(SimplePlugin):
             if retry < 6:
                 return self.channel_array_gen(retry)
             else:
-                xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
+                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
                 raise SourceException('Error loading list')
 
         ar_chan = []
@@ -322,7 +287,7 @@ class Main(SimplePlugin):
                     end = dt_end.strftime("%H:%M")
 
                     if p_title != '':
-                        channel = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[color], ch[1])
+                        channel = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch[1])
                         time_delta = '[COLOR 80FFFFFF][B][{0} - {1}][/B][/COLOR]'.format(start, end)
 
                         if form == 0:
@@ -330,7 +295,7 @@ class Main(SimplePlugin):
                         else:
                             title = '{0} {1} - {2}'.format(channel, p_title, time_delta)
                 else:
-                    title = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[color], ch[1])
+                    title = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch[1])
 
                 if ch[2]:
                     art = ({'thumb': ch[2], 'poster': p_img, 'banner': banner, 'icon': ch[2], 'fanart': p_img})
@@ -347,12 +312,12 @@ class Main(SimplePlugin):
 
         url = 'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={code}'.format(code=code)
 
-        response = self.get_requests(url)
+        response = self.jget(url)
         try:
             live = response['data']
             if live:
                 urls = live['stream_url']
-                response = self.get_requests(urls)
+                response = self.jget(urls)
 
                 streams = response['formats']
 
@@ -361,7 +326,7 @@ class Main(SimplePlugin):
             if retry < 6:
                 return self.play_channel(code, ch_id, retry)
             else:
-                xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
+                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
                 raise SourceException('Error loading list')
 
         url_stream, protocol, mime_type = self.get_stream_of_type(streams)
@@ -373,7 +338,7 @@ class Main(SimplePlugin):
 
         url = "https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations"
 
-        response = self.get_requests(url)
+        response = self.jget(url)
         try:
             ch_data = response['data']
         except Exception:
@@ -381,7 +346,7 @@ class Main(SimplePlugin):
             if retry < 6:
                 return self.replay_channels_array_gen(retry)
             else:
-                xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
+                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
                 raise SourceException('Error loading list')
 
         ar_chan = []
@@ -436,7 +401,7 @@ class Main(SimplePlugin):
 
         url = f'https://tvpstream.tvp.pl/api/tvp-stream/program-tv/index?station_code={ch_code}&date={date}'
 
-        response = self.get_requests(url)
+        response = self.jget(url)
         try:
             pr_data = response['data']
         except Exception:
@@ -444,7 +409,7 @@ class Main(SimplePlugin):
             if retry < 6:
                 return self.replay_programs_array_gen(ch_code, date, retry)
             else:
-                xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
+                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
                 raise SourceException('Error loading list')
 
         ar_prog = []
@@ -484,7 +449,7 @@ class Main(SimplePlugin):
     def replay_programs_gen(self, ch_code, ch_img, date):
         with self.directory() as kdir:
             for p in self.replay_programs_array_gen(ch_code, date):
-                channel = f'[COLOR {colors[color]}][B] {p[6]} [/B][/COLOR]'
+                channel = f'[COLOR {colors[self.color]}][B] {p[6]} [/B][/COLOR]'
                 if form == 0:
                     title = f'{channel} {p[4]} - {p[2]}'
                 else:
@@ -502,7 +467,7 @@ class Main(SimplePlugin):
 
         url = f'https://sport.tvp.pl/api/tvp-stream/stream/data?station_code={ch_code}&record_id={prog_id}'
 
-        response = self.get_requests(url)
+        response = self.jget(url)
         try:
             replay = response['data']
         except Exception:
@@ -510,11 +475,11 @@ class Main(SimplePlugin):
             if retry < 6:
                 return self.get_replay_program_streams(code, prog_id, retry)
             else:
-                xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
+                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
                 raise SourceException('Error loading list')
 
         urls = replay['stream_url']
-        response = self.get_requests(urls)
+        response = self.jget(urls)
         streams = response['formats']
 
         return streams
@@ -540,7 +505,7 @@ class Main(SimplePlugin):
     def apply_timeshift(self, url_stream, keep_begin_time=True):
         if url_stream is not None:
             time_delta = int(addon.getSetting('tvpgo_timeshift_delta_value'))
-            if addon.getSetting('tvpgo_timeshift_type') == strings(30004) and 0 < time_delta <= 10080:
+            if addon.getSetting('tvpgo_timeshift_type') == L(30004) and 0 < time_delta <= 10080:
                 url_stream = self.adjust_timeshift_args(url_stream,
                                                         begin_time=self.gen_begin_time_from_timedelta(time_delta))
             else:
@@ -601,19 +566,22 @@ class Main(SimplePlugin):
         if url_stream != '':
             return url_stream, protocol_type, stream_mime_type
         else:
-            xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
+            xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
             raise SourceException('Error loading list')
 
-    @staticmethod
-    def generate_m3u(c):
-        if file_name == '' or path_m3u == '':
-            xbmcgui.Dialog().notification('TVP GO', strings(30022), xbmcgui.NOTIFICATION_ERROR)
+    def build_m3u(self):
+        path_m3u = self.setting.tvpgo_path_m3u
+        file_name = self.setting.tvpgo_filename
+
+        if not file_name or not path_m3u:
+            xbmcgui.Dialog().notification('TVP GO', L(30022, 'Set filename and destination directory'),
+                                          xbmcgui.NOTIFICATION_ERROR)
             return
 
-        xbmcgui.Dialog().notification('TVP GO', strings(30025), xbmcgui.NOTIFICATION_INFO)
+        xbmcgui.Dialog().notification('TVP GO', L(30025, 'Generate playlist'), xbmcgui.NOTIFICATION_INFO)
         data = '#EXTM3U\n'
 
-        for item in c:
+        for item in self.channel_array_gen():
             ch_code = item[0]
             ch_name = item[1]
             ch_logo = item[2]
@@ -621,13 +589,15 @@ class Main(SimplePlugin):
                 ch_id = item[3]
             else:
                 ch_id = ''
-            data += f'#EXTINF:0 tvg-id="{ch_name}" tvg-logo="{ch_logo}" group-title="TVPGO",{ch_name}\nplugin://plugin.video.tvpgo?mode=list&ch_code={ch_code}&ch_id={ch_id}\n'  # noqa E501
+            data += (f'#EXTINF:0 tvg-id="{ch_name}" tvg-logo="{ch_logo}" group-title="TVPGO",{ch_name}\n'
+                     f'plugin://plugin.video.tvpgo/list?ch_code={ch_code}&ch_id={ch_id}\n')
 
-        f = xbmcvfs.File(path_m3u + file_name, 'w')
-        f.write(data)
-        f.close()
-
-        xbmcgui.Dialog().notification('TVP GO', strings(30029), xbmcgui.NOTIFICATION_INFO)
+        try:
+            f = xbmcvfs.File(path_m3u + file_name, 'w')
+            f.write(data)
+        finally:
+            f.close()
+        xbmcgui.Dialog().notification('TVP GO', L(30029, 'Playlist M3U generated'), xbmcgui.NOTIFICATION_INFO)
 
 
 if __name__ == '__main__':
