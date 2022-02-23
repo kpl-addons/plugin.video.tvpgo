@@ -482,18 +482,18 @@ class Main(SimplePlugin):
         return ar_prog
 
     def replay_programs_gen(self, ch_code, ch_img, date):
-        for p in self.replay_programs_array_gen(ch_code, date):
-            channel = f'[COLOR {colors[color]}][B] {p[6]} [/B][/COLOR]'
-            if form == 0:
-                title = f'{channel} {p[4]} - {p[2]}'
-            else:
-                title = f'{channel} {p[2]} - {p[4]}'
-            if p[5]:
-                art = {'thumb': p[5], 'poster': p[5], 'banner': banner, 'icon': icon, 'fanart': fanart}
-            else:
-                art = {'thumb': ch_img, 'poster': ch_img, 'banner': banner, 'icon': icon, 'fanart': fanart}
+        with self.directory() as kdir:
+            for p in self.replay_programs_array_gen(ch_code, date):
+                channel = f'[COLOR {colors[color]}][B] {p[6]} [/B][/COLOR]'
+                if form == 0:
+                    title = f'{channel} {p[4]} - {p[2]}'
+                else:
+                    title = f'{channel} {p[2]} - {p[4]}'
+                if p[5]:
+                    art = {'thumb': p[5], 'poster': p[5], 'banner': banner, 'icon': icon, 'fanart': fanart}
+                else:
+                    art = {'thumb': ch_img, 'poster': ch_img, 'banner': banner, 'icon': icon, 'fanart': fanart}
 
-            with self.directory() as kdir:
                 kdir.play(title, call(self.play_programme, code=ch_code, prog_id=p[0]),
                           info={'title': title, 'sorttitle': p[2], 'plot': p[3]}, art=art)
 
