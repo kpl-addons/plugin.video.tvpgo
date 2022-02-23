@@ -44,29 +44,20 @@
 
 import os
 import sys
-
-import six
-from six.moves import urllib_error, urllib_request, urllib_parse, http_cookiejar
-
+from six.moves import urllib_parse
 import requests
-import urllib
-
 from libka import SimplePlugin, call
-
 try:
     from urllib.parse import urlencode, quote_plus, quote, unquote
 except ImportError:
     from urllib import urlencode, quote_plus, quote, unquote
-
 import xbmc
 import xbmcgui
 import xbmcplugin
 import xbmcaddon
 import xbmcvfs
-
 import re
 import json
-import random
 import time
 import datetime
 
@@ -115,7 +106,7 @@ fanart = os.path.join(addon_path, 'fanart.png')
 timeout = (3, 5)
 
 
-class source_exception(Exception):
+class SourceException(Exception):
     pass
 
 
@@ -123,9 +114,9 @@ def build_url(query):
     return base_url + '?' + urllib_parse.urlencode(query)
 
 
-def get_requests(url, data={}, headers={}, payload={}, txt=False):
+def get_requests(url, headers=None, data=None, txt=False):
     try:
-        if data:
+        if data is not None:
             response = requests.post(url, headers=headers, json=data)
         else:
             response = requests.get(url, headers=headers)
@@ -139,93 +130,12 @@ def get_requests(url, data={}, headers={}, payload={}, txt=False):
 
     except:
         xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-        raise source_exception('Error loading list')
+        raise SourceException('Error loading list')
 
 
 def set_view():
     if views[view] != 'default':
         xbmcplugin.setContent(addon_handle, views[view])
-
-
-def get_epgs(retry=0):
-    from datetime import datetime
-
-    retry += 1
-
-    url = 'https://www.tvp.pl/program-tv'
-
-    headers = {
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'DNT': '1',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36 Edg/98.0.1108.56',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'Referer': 'https://www.tvp.pl/program-tv',
-        'Accept-Language': 'sv,en;q=0.9,en-GB;q=0.8,en-US;q=0.7,pl;q=0.6,fr;q=0.5',
-    }
-
-    response = get_requests(url, headers=headers, txt=True)
-
-    try:
-        stations_regex = re.compile(r'window.__stationsProgram\[\d+\]\s=\s(.*?)</script>', re.MULTILINE | re.DOTALL)
-        finds = stations_regex.findall(response)
-
-    except:
-        time.sleep(1)
-        if retry < 6:
-            return get_epgs(retry)
-        else:
-            xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-            raise source_exception('Error loading list')
-
-    epg_data = []
-
-    for js_data in finds:
-        js_data = re.sub(r'},\n}', r'}\n}', js_data).replace(';', '')
-
-        data = json.loads(js_data)
-        for e in data['items']:
-            ch_id = e.get('_id')
-            ch_code = e.get('station_code')
-
-            live = e.get('live')
-            if live == 'true':
-                p_live = 'Live'
-            else:
-                p_live = ''
-
-            start = e.get('date_start')
-            if start is not None:
-                p_start = int(start)
-
-            end = e.get('date_end')
-            if end is not None:
-                p_end = int(end)
-
-            p_duration = e.get('duration')
-
-            program = e.get('program')
-            if program is not None:
-                imgs = program.get('akpa_images')
-                if imgs is not None:
-                    for img in imgs:
-                        img_id = img['fileName'].replace('.jpg', '')
-                        p_img = 'https://s2.tvp.pl/images-akpa/0/0/0/uid_{id}_width_1280_play_0_pos_0_gs_0_height_720.jpg'.format(id=img_id)
-                else:
-                    p_img = ''
-
-                p_title = program['title']
-                p_year = program['year']
-                p_land = program['land']
-                p_desc = program['description']
-                p_desc_long = program['description_long']
-
-            now = int(datetime.timestamp(datetime.now())) * 1000
-
-            if p_start <= now <= p_end:
-                epg_data.append([ch_id, ch_code, p_live, p_start, p_end, p_duration, p_title, p_year, p_land, p_desc, p_desc_long, p_img])
-
-    return epg_data
 
 
 def replay_channels_array_gen(retry=0):
@@ -242,7 +152,7 @@ def replay_channels_array_gen(retry=0):
             return replay_channels_array_gen(retry)
         else:
             xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-            raise source_exception('Error loading list')
+            raise SourceException('Error loading list')
 
     ar_chan = []
 
@@ -328,7 +238,7 @@ def replay_programs_array_gen(ch_code, date, retry=0):
             return replay_programs_array_gen(ch_code, date, retry)
         else:
             xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-            raise source_exception('Error loading list')
+            raise SourceException('Error loading list')
 
     ar_prog = []
 
@@ -402,7 +312,7 @@ def get_replay_program_streams(ch_code, prog_id, retry=0):
             return get_replay_program_streams(code, prog_id, retry)
         else:
             xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-            raise source_exception('Error loading list')
+            raise SourceException('Error loading list')
 
     urls = replay['stream_url']
     response = get_requests(urls)
@@ -422,8 +332,8 @@ def apply_timeshift(url_stream, keep_begin_time=True):
         return url_stream
 
 
-def adjust_timeshift_args(inputUrl, begin_time=None, keep_begin_time=True):
-    input_url_parsed = urllib_parse.urlparse(inputUrl)
+def adjust_timeshift_args(input_url, begin_time=None, keep_begin_time=True):
+    input_url_parsed = urllib_parse.urlparse(input_url)
     input_params = dict(urllib_parse.parse_qsl(input_url_parsed.query))
 
     if not keep_begin_time:
@@ -434,10 +344,10 @@ def adjust_timeshift_args(inputUrl, begin_time=None, keep_begin_time=True):
 
     input_params['end'] = ''
 
-    inputUrlList = list(input_url_parsed)
-    inputUrlList[4] = urllib_parse.urlencode(input_params)
+    input_url_list = list(input_url_parsed)
+    input_url_list[4] = urllib_parse.urlencode(input_params)
 
-    return urllib_parse.urlunparse(inputUrlList)
+    return urllib_parse.urlunparse(input_url_list)
 
 
 def gen_begin_time_from_timedelta(delta_min):
@@ -450,7 +360,7 @@ def gen_begin_time_from_timedelta(delta_min):
     return utc_begin_time_object.strftime(time_format_pattern)
 
 
-def get_stream_of_type(streams, force=False):
+def get_stream_of_type(streams):
     url_stream = ''
 
     for s in streams:
@@ -473,7 +383,7 @@ def get_stream_of_type(streams, force=False):
         return url_stream, protocol, mime_type
     else:
         xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-        raise source_exception('Error loading list')
+        raise SourceException('Error loading list')
 
 
 def play_programme(code, prog_id):
@@ -484,9 +394,8 @@ def play_programme(code, prog_id):
 
 def play(url_stream, protocol, mime_type=None):
     import inputstreamhelper
-    PROTOCOL = protocol
 
-    is_helper = inputstreamhelper.Helper(PROTOCOL)
+    is_helper = inputstreamhelper.Helper(protocol)
     if is_helper.check_inputstream():
         play_item = xbmcgui.ListItem(path=url_stream)
         if mime_type is not None:
@@ -498,7 +407,7 @@ def play(url_stream, protocol, mime_type=None):
             play_item.setProperty('inputstreamaddon', is_helper.inputstream_addon)
 
         play_item.setProperty("IsPlayable", "true")
-        play_item.setProperty('inputstream.adaptive.manifest_type', PROTOCOL)
+        play_item.setProperty('inputstream.adaptive.manifest_type', protocol)
 
     xbmcplugin.setResolvedUrl(addon_handle, True, listitem=play_item)
 
@@ -519,11 +428,7 @@ def generate_m3u(c):
             ch_id = item[3]
         else:
             ch_id = ''
-        data += '#EXTINF:0 tvg-id="{0}" tvg-logo="{1}" group-title="TVPGO",{2}\nplugin://plugin.video.tvpgo?mode=list&ch_code={3}&ch_id={4}\n'.format(ch_name,
-                                                                                                                                                      ch_logo,
-                                                                                                                                                      ch_name,
-                                                                                                                                                      ch_code,
-                                                                                                                                                      ch_id)
+        data += f'#EXTINF:0 tvg-id="{ch_name}" tvg-logo="{ch_logo}" group-title="TVPGO",{ch_name}\nplugin://plugin.video.tvpgo?mode=list&ch_code={ch_code}&ch_id={ch_id}\n'
 
     f = xbmcvfs.File(path_m3u + file_name, 'w')
     f.write(data)
@@ -544,7 +449,7 @@ class Main(SimplePlugin):
                 if action == 'play':
                     channel_code = params.get('ch_code', '')
                     channel_id = params.get('ch_id', '')
-                    play_channel(channel_code, channel_id)
+                    self.play_channel(channel_code, channel_id)
 
             if mode == 'replay':
                 if action == 'getChannels':
@@ -567,7 +472,7 @@ class Main(SimplePlugin):
             if mode == 'list':
                 channel_code = params.get('ch_code', '')
                 channel_id = params.get('ch_id', '')
-                play_channel(channel_code, channel_id)
+                self.play_channel(channel_code, channel_id)
 
         else:
             if not action:
@@ -587,6 +492,86 @@ class Main(SimplePlugin):
                 kdir.menu(item[0], call(self.channels_gen, url=self.url_ch), info={'title': item[0], 'sorttitle': item[0], 'plot': ''},
                           art={'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
 
+    def get_epgs(self, retry=0):
+        from datetime import datetime
+
+        retry += 1
+
+        url = 'https://www.tvp.pl/program-tv'
+
+        headers = {
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'DNT': '1',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36 Edg/98.0.1108.56',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Referer': 'https://www.tvp.pl/program-tv',
+            'Accept-Language': 'sv,en;q=0.9,en-GB;q=0.8,en-US;q=0.7,pl;q=0.6,fr;q=0.5',
+        }
+
+        response = get_requests(url, headers=headers, txt=True)
+
+        try:
+            stations_regex = re.compile(r'window.__stationsProgram\[\d+\]\s=\s(.*?)</script>', re.MULTILINE | re.DOTALL)
+            finds = stations_regex.findall(response)
+
+        except:
+            time.sleep(1)
+            if retry < 6:
+                return self.get_epgs(retry)
+            else:
+                xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
+                raise SourceException('Error loading list')
+
+        epg_data = []
+
+        for js_data in finds:
+            js_data = re.sub(r'},\n}', r'}\n}', js_data).replace(';', '')
+
+            data = json.loads(js_data)
+            for e in data['items']:
+                ch_id = e.get('_id')
+                ch_code = e.get('station_code')
+
+                live = e.get('live')
+                if live == 'true':
+                    p_live = 'Live'
+                else:
+                    p_live = ''
+
+                start = e.get('date_start')
+                if start is not None:
+                    p_start = int(start)
+
+                end = e.get('date_end')
+                if end is not None:
+                    p_end = int(end)
+
+                p_duration = e.get('duration')
+
+                program = e.get('program')
+                if program is not None:
+                    imgs = program.get('akpa_images')
+                    if imgs is not None:
+                        for img in imgs:
+                            img_id = img['fileName'].replace('.jpg', '')
+                            p_img = 'https://s2.tvp.pl/images-akpa/0/0/0/uid_{id}_width_1280_play_0_pos_0_gs_0_height_720.jpg'.format(id=img_id)
+                    else:
+                        p_img = ''
+
+                    p_title = program['title']
+                    p_year = program['year']
+                    p_land = program['land']
+                    p_desc = program['description']
+                    p_desc_long = program['description_long']
+
+                now = int(datetime.timestamp(datetime.now())) * 1000
+
+                if p_start <= now <= p_end:
+                    epg_data.append([ch_id, ch_code, p_live, p_start, p_end, p_duration, p_title, p_year, p_land, p_desc, p_desc_long, p_img])
+
+        return epg_data
+
     def channel_array_gen(self, retry=0):
         retry += 1
 
@@ -601,7 +586,7 @@ class Main(SimplePlugin):
                 return self.channel_array_gen(retry)
             else:
                 xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-                raise source_exception('Error loading list')
+                raise SourceException('Error loading list')
 
         ar_chan = []
         for c in ch_data:
@@ -624,7 +609,7 @@ class Main(SimplePlugin):
         from datetime import datetime
 
         channels = self.channel_array_gen()
-        epg_data = get_epgs()
+        epg_data = self.get_epgs()
 
         with self.directory() as kdir:
             for ch in channels:
@@ -698,7 +683,7 @@ class Main(SimplePlugin):
                 return self.play_channel(code, ch_id, retry)
             else:
                 xbmcgui.Dialog().notification(strings(30027), strings(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-                raise source_exception('Error loading list')
+                raise SourceException('Error loading list')
 
         url_stream, protocol, mime_type = get_stream_of_type(streams)
         url_stream = apply_timeshift(url_stream)
