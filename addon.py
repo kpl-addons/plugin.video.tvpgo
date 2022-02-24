@@ -78,7 +78,7 @@ def repeat_call(repeat, delay=0, catch=Exception, *, on_fail=None):
 
 
 #: Channel info
-ChannelInfo = namedtuple('ChannelInfo', 'id code title desc time_delta logo name')
+ChannelInfo = namedtuple('ChannelInfo', 'id code title descr time_delta logo name')
 
 
 colors = ['', 'skyblue', 'dodgerblue', 'lightgreen', 'indianred', 'thistle', 'goldenrod', 'sandybrown', 'button_focus']
@@ -428,8 +428,8 @@ class Main(SimplePlugin):
             for p in self.replay_programs_array_gen(ch_code, date):
                 channel = f'[COLOR {colors[self.color]}][B] {p.name} [/B][/COLOR]'
                 title = self.title_format.format(channel=channel, title=p.title, time=p.time_delta)
-                art = {'thumb': p.logo or ch_img, 'poster': p.logo or ch_img, 'banner': banner,
-                       'icon': icon, 'fanart': fanart}
+                art = {'thumb': p.logo or ch_img, 'poster': p.logo or ch_img, 'banner': self.banner,
+                       'icon': self.icon, 'fanart': self.fanart}
 
                 kdir.play(title, call(self.play_programme, code=ch_code, prog_id=p.id),
                           info={'title': title, 'sorttitle': p.title, 'plot': p.descr}, art=art)
