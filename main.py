@@ -51,6 +51,7 @@ from collections import namedtuple
 from libka import SimplePlugin, call, L
 from libka.logs import log
 from libka.format import safefmt
+from libka.utils import adict
 # imports for libka only
 from functools import wraps
 from xbmc import sleep as xbmc_sleep
@@ -77,8 +78,13 @@ def repeat_call(repeat, delay=0, catch=Exception, *, on_fail=None):
     return decorator
 
 
-#: Channel info in replay menu
-ReplayChannelInfo = namedtuple('ReplayChannelInfo', 'id code title descr time_delta logo name')
+#: Channel general info
+ChannelInfo = namedtuple('ChannelInfo', 'id code name title descr time_delta img',
+                         defaults=(None, None, None, None))
+
+#: Singe EPG info
+EpgInfo = namedtuple('EpgInfo', 'id code live start end duration title year land desc desc_long img',
+                     defaults=('', '', '', '', '', '', '', '', '', ''))
 
 
 colors = ['', 'skyblue', 'dodgerblue', 'lightgreen', 'indianred', 'thistle', 'goldenrod', 'sandybrown', 'button_focus']
@@ -117,6 +123,8 @@ class Main(SimplePlugin):
         self.banner = self.media.image('banner.png')
         self.icon = self.resources.base / 'icon.png'
         self.fanart = self.resources.base / 'fanart.png'
+        now = datetime.now()
+        self.tz_offset = now - datetime.utcfromtimestamp(now.timestamp())
 
     def home(self):
         # default art
@@ -152,18 +160,7 @@ class Main(SimplePlugin):
                                       L(30028, 'Connection to the service has failed'),
                                       xbmcgui.NOTIFICATION_INFO, 6000, False)
 
-    def get_epgs(self):
-        p_start = ''
-        p_end = ''
-        p_title = ''
-        p_year = ''
-        p_land = ''
-        p_desc = ''
-        p_desc_long = ''
-        p_img = ''
-
-        url = 'https://www.tvp.pl/program-tv'
-
+    def get_epgs(self, *, all_day=False, tv_code=None):
         headers = {
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
@@ -175,7 +172,7 @@ class Main(SimplePlugin):
             'Referer': 'https://www.tvp.pl/program-tv',
             'Accept-Language': 'sv,en;q=0.9,en-GB;q=0.8,en-US;q=0.7,pl;q=0.6,fr;q=0.5',
         }
-
+        url = 'https://www.tvp.pl/program-tv'
         response = self.get(url, headers=headers).text
         stations_regex = re.compile(r'window.__stationsProgram\[\d+\]\s=\s(.*?)</script>',
                                     re.MULTILINE | re.DOTALL)
@@ -185,48 +182,32 @@ class Main(SimplePlugin):
             js_data = re.sub(r'},\n}', r'}\n}', match.group(1)).replace(';', '')
 
             data = json.loads(js_data)
-            for e in data['items']:
-                ch_id = e.get('_id')
-                ch_code = e.get('station_code')
-
-                live = e.get('live')
-                if live == 'true':
-                    p_live = 'Live'
-                else:
-                    p_live = ''
-
-                start = e.get('date_start')
-                if start is not None:
-                    p_start = int(start)
-
-                end = e.get('date_end')
-                if end is not None:
-                    p_end = int(end)
-
-                p_duration = e.get('duration')
-
-                program = e.get('program')
-                if program is not None:
-                    imgs = program.get('akpa_images')
-                    if imgs is not None:
-                        for img in imgs:
-                            img_id = img['fileName'].replace('.jpg', '')
-                            p_img = f'https://s2.tvp.pl/images-akpa/0/0/0/uid_' \
-                                    f'{img_id}_width_1280_play_0_pos_0_gs_0_height_720.jpg '
-                    else:
-                        p_img = ''
-
-                    p_title = program['title']
-                    p_year = program['year']
-                    p_land = program['land']
-                    p_desc = program['description']
-                    p_desc_long = program['description_long']
-
-                now_msec = int(datetime.timestamp(datetime.utcnow())) * 1000
-                if p_start <= now_msec <= p_end:
-                    epg_data.append(
-                        [ch_id, ch_code, p_live, p_start, p_end, p_duration, p_title, p_year, p_land, p_desc,
-                         p_desc_long, p_img])
+            # XXX DEBUG
+            # if data['station']['name'] == 'TVP1':
+            #     with open('/tmp/epg1.json', 'w') as f:
+            #         json.dump(data, f)
+            if tv_code is None or tv_code == data.get('station', {}).get('code'):
+                for e in data['items']:
+                    start = e.get('date_start')
+                    end = e.get('date_end')
+                    now_msec = datetime.now().timestamp() * 1000
+                    if all_day or start <= now_msec <= end:
+                        ch_id = e.get('_id')
+                        ch_code = e.get('station_code')
+                        p_live = 'Live' if e.get('live') else ''
+                        prog = e.get('program')
+                        if prog is not None:
+                            imgs = prog.get('akpa_images')
+                            if imgs is not None:
+                                for img in imgs:
+                                    img_id = img['fileName'].replace('.jpg', '')
+                                    p_img = f'https://s2.tvp.pl/images-akpa/0/0/0/uid_' \
+                                            f'{img_id}_width_1280_play_0_pos_0_gs_0_height_720.jpg '
+                            else:
+                                p_img = ''
+                            epg_data.append(EpgInfo(ch_id, ch_code, p_live, start, end, e.get('duration'),
+                                                    prog['title'], prog['year'], prog['land'], prog['description'],
+                                                    prog['description_long'], p_img))
 
         return epg_data
 
@@ -247,7 +228,7 @@ class Main(SimplePlugin):
             ch_name = ' '.join(s for s in re_name.search(c['name']).groups() if s)
             ch_img = safefmt(c['image_square']['url'], width=500, height=500)
 
-            ar_chan.append([ch_code, ch_name, ch_img, ch_id])
+            ar_chan.append(ChannelInfo(code=ch_code, name=ch_name, img=ch_img, id=ch_id))
 
         if self.settings.tvpgo_sort == 1:
             ar_chan = sorted(ar_chan, key=lambda x: x[1])
@@ -256,53 +237,42 @@ class Main(SimplePlugin):
 
     def live(self):
         channels = self.channel_array_gen()
-        epg_data = self.get_epgs()
+        epg_data = {epg.code: epg for epg in self.get_epgs()}
 
         with self.directory() as kdir:
+            T = self.tz_offset
             for ch in channels:
-                p_live = ''
-                p_start = ''
-                p_end = ''
-                p_duration = ''
-                p_title = ''
-                p_year = ''
-                p_desc = ''
-                p_desc_long = ''
-                p_img = ''
+                epg = epg_data.get(ch.code)
+                if epg:
+                    if epg.start and epg.end:
+                        dt_start = datetime.fromtimestamp(int(epg.start) / 1000)
+                        dt_end = datetime.fromtimestamp(int(epg.end) / 1000)
 
-                for epg in epg_data:
-                    if ch[0] == epg[1]:
-                        p_live = epg[2]
-                        p_start = epg[3]
-                        p_end = epg[4]
-                        p_duration = epg[5]
-                        p_title = epg[6]
-                        p_year = epg[7]
-                        p_desc = epg[9]
-                        p_desc_long = epg[10]
-                        p_img = epg[11]
+                        if epg.title != '':
+                            channel = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch.name)
+                            time_delta = f'[COLOR 80FFFFFF][B][{dt_start:%H:%M} - {dt_end:%H:%M}][/B][/COLOR]'
 
-                if p_start and p_end:
-                    dt_start = datetime.utcfromtimestamp(int(p_start) / 1000)
-                    dt_end = datetime.utcfromtimestamp(int(p_end) / 1000)
+                            title = self.title_format.format(channel=channel, title=epg.title, time=time_delta)
+                    else:
+                        title = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch.name)
 
-                    if p_title != '':
-                        channel = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch[1])
-                        time_delta = f'[COLOR 80FFFFFF][B][{dt_start:%H:%M} - {dt_end:%H:%M}][/B][/COLOR]'
-
-                        title = self.title_format.format(channel=channel, title=p_title, time=time_delta)
+                    if ch.img:
+                        art = ({'thumb': ch.img, 'poster': epg.img, 'banner': self.banner, 'icon': ch.img, 'fanart': epg.img})
+                    else:
+                        art = ({'thumb': self.thumb, 'poster': self.poster, 'banner': self.banner,
+                                'icon': self.icon, 'fanart': self.fanart})
+                    kdir.play(title, call(self.play_channel, code=ch.code, ch_id=ch.id), art=art,
+                              info={'title': title, 'sorttitle': title, 'tvshowtitle': title, 'status': epg.live,
+                                    'year': epg.year, 'plotoutline': epg.desc,
+                                    'plot': epg.desc_long, 'duration': epg.duration})
                 else:
-                    title = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch[1])
+                    # XXX  DEBUG only
+                    kdir.item(f'Missing EPG for {ch}', '/')
 
-                if ch[2]:
-                    art = ({'thumb': ch[2], 'poster': p_img, 'banner': self.banner, 'icon': ch[2], 'fanart': p_img})
-                else:
-                    art = ({'thumb': self.thumb, 'poster': self.poster, 'banner': self.banner,
-                            'icon': self.icon, 'fanart': self.fanart})
-                kdir.play(title, call(self.play_channel, code=ch[0], ch_id=ch[3]), art=art,
-                          info={'title': title, 'sorttitle': title, 'tvshowtitle': title, 'status': p_live,
-                                'year': p_year, 'plotoutline': p_desc,
-                                'plot': p_desc_long, 'duration': p_duration})
+    def program(self, code):
+        """List EPG for given program."""
+        epg_list = self.get_epgs(all_day=True, tv_code=code)
+        # TODO: to be contined...  (rysson)
 
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def play_channel(self, code, ch_id):
@@ -339,7 +309,7 @@ class Main(SimplePlugin):
             ch_id = c['id']
             ch_img = c['image_square']['url'].replace('{width}', '500').replace('{height}', '500')
 
-            ar_chan.append([ch_code, ch_name, ch_img, ch_id])
+            ar_chan.append(ChannelInfo(code=ch_code, name=ch_name, img=ch_img, id=ch_id))
 
         if self.settings.tvpgo_sort == 1:
             ar_chan = sorted(ar_chan, key=lambda x: x[1])
@@ -349,17 +319,13 @@ class Main(SimplePlugin):
     def replay(self):
         with self.directory() as kdir:
             for ch in self.replay_channels_array_gen():
-                set_info = {'title': ch[1], 'sorttitle': ch[1], 'plot': ''}
-                if ch[2]:
-                    kdir.menu(ch[1], call(self.replay_calendar_gen, ch_code=ch[0], ch_image=ch[2]),
-                              art={'thumb': ch[2], 'poster': ch[2], 'banner': self.banner,
-                                   'icon': self.icon, 'fanart': self.fanart},
-                              info=set_info)
-                else:
-                    kdir.menu(ch[1], call(self.replay_calendar_gen, ch_code=ch[0], ch_image=ch[2]),
-                              art={'thumb': self.thumb, 'poster': self.poster, 'banner': self.banner,
-                                   'icon': self.icon, 'fanart': self.fanart},
-                              info=set_info)
+                set_info = {'title': ch.name, 'sorttitle': ch.name, 'plot': ''}
+                thumb = ch.img or self.thumb
+                poster = ch.img or self.poster
+                kdir.menu(ch[1], call(self.replay_calendar_gen, ch_code=ch.code, ch_image=ch.img),
+                          art={'thumb': thumb, 'poster': poster, 'banner': self.banner,
+                               'icon': self.icon, 'fanart': self.fanart},
+                          info=set_info)
 
     def replay_calendar_gen(self, ch_code, ch_image):
         now = datetime.now()
@@ -403,9 +369,9 @@ class Main(SimplePlugin):
                     if cycle is not None:
                         logo = cycle['image_logo']
                         if logo:
-                            p_logo = logo['url'].replace('{width}', '360').replace('{height}', '205')
+                            p_logo = safefmt(logo['url'], width=360, height=205)
 
-                ar_prog.append(ReplayChannelInfo(p_id, ch_code, p_title, p_desc, p_time_delta, p_logo, ch_name))
+                ar_prog.append(ChannelInfo(p_id, ch_code, ch_name, p_title, p_desc, p_time_delta, p_logo))
 
         return ar_prog
 
@@ -414,7 +380,7 @@ class Main(SimplePlugin):
             for p in self.replay_programs_array_gen(ch_code, date):
                 channel = f'[COLOR {colors[self.color]}][B] {p.name} [/B][/COLOR]'
                 title = self.title_format.format(channel=channel, title=p.title, time=p.time_delta)
-                art = {'thumb': p.logo or ch_img, 'poster': p.logo or ch_img, 'banner': self.banner,
+                art = {'thumb': p.img or ch_img, 'poster': p.img or ch_img, 'banner': self.banner,
                        'icon': self.icon, 'fanart': self.fanart}
 
                 kdir.play(title, call(self.play_programme, code=ch_code, prog_id=p.id),
@@ -526,11 +492,11 @@ class Main(SimplePlugin):
         data = '#EXTM3U\n'
 
         for item in self.channel_array_gen():
-            ch_code = item[0]
-            ch_name = item[1]
-            ch_logo = item[2]
+            ch_code = item.code
+            ch_name = item.name
+            ch_logo = item.img
             if ch_code == '':
-                ch_id = item[3]
+                ch_id = item.id
             else:
                 ch_id = ''
             data += (f'#EXTINF:0 tvg-id="{ch_name}" tvg-logo="{ch_logo}" group-title="TVPGO",{ch_name}\n'
