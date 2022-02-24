@@ -42,4 +42,7 @@
 from resources.lib.main import Main
 
 if __name__ == '__main__':
+    import sys
+    from libka.logs import log
+    log.info(f'============= {sys.argv}')
     Main().run()

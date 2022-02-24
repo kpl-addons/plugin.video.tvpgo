@@ -4,11 +4,12 @@ import xbmcplugin
 import xbmcvfs
 import re
 import json
-import time
 from datetime import datetime, timedelta
 from collections import namedtuple
 
 from libka import SimplePlugin, call, L
+from libka.logs import log
+from libka.format import safefmt
 # imports for libka only
 from functools import wraps
 from xbmc import sleep as xbmc_sleep
@@ -35,8 +36,8 @@ def repeat_call(repeat, delay=0, catch=Exception, *, on_fail=None):
     return decorator
 
 
-#: Channel info
-ChannelInfo = namedtuple('ChannelInfo', 'id code title descr time_delta logo name')
+#: Channel info in replay menu
+ReplayChannelInfo = namedtuple('ReplayChannelInfo', 'id code title descr time_delta logo name')
 
 
 colors = ['', 'skyblue', 'dodgerblue', 'lightgreen', 'indianred', 'thistle', 'goldenrod', 'sandybrown', 'button_focus']
@@ -60,13 +61,6 @@ class RepeatException(Exception):
     pass
 
 
-def add_zero(x):
-    if x <= 9:
-        return '0' + str(x)
-    else:
-        return str(x)
-
-
 class Main(SimplePlugin):
 
     def __init__(self):
@@ -88,10 +82,10 @@ class Main(SimplePlugin):
         art = {'thumb': self.thumb, 'poster': self.poster, 'banner': self.banner,
                'icon': self.icon, 'fanart': self.fanart}
         with self.directory() as kdir:
-            kdir.menu('Kanały na żywo', self.channels_gen,
+            kdir.menu('Kanały na żywo', self.live,
                       info={'title': 'Kanały na żywo', 'sorttitle': 'Kanały na żywo', 'plot': ''},
                       art=art)
-            kdir.menu('Replay', self.replay_channels_gen,
+            kdir.menu('Replay', self.replay,
                       info={'title': 'Replay', 'sorttitle': 'Replay', 'plot': ''},
                       art=art)
 
@@ -187,9 +181,8 @@ class Main(SimplePlugin):
                     p_desc = program['description']
                     p_desc_long = program['description_long']
 
-                now = int(datetime.timestamp(datetime.now())) * 1000
-
-                if p_start <= now <= p_end:
+                now_msec = int(datetime.timestamp(datetime.utcnow())) * 1000
+                if p_start <= now_msec <= p_end:
                     epg_data.append(
                         [ch_id, ch_code, p_live, p_start, p_end, p_duration, p_title, p_year, p_land, p_desc,
                          p_desc_long, p_img])
@@ -206,14 +199,12 @@ class Main(SimplePlugin):
             raise RepeatException()
 
         ar_chan = []
+        re_name = re.compile(r'^(?:EPG)?\s*([^\d]+?)\s*(\d.*)?\s*$')
         for c in ch_data:
             ch_id = c['id']
             ch_code = c['code']
-
-            ch_name = c['name'].replace('EPG - ', '')
-            ch_name = re.sub(r"([0-9]+(\.[0-9]+)?)", r" \1", ch_name).strip().replace('  ', ' ')
-
-            ch_img = c['image_square']['url'].replace('{width}', '500').replace('{height}', '500')
+            ch_name = ' '.join(s for s in re_name.search(c['name']).groups() if s)
+            ch_img = safefmt(c['image_square']['url'], width=500, height=500)
 
             ar_chan.append([ch_code, ch_name, ch_img, ch_id])
 
@@ -222,7 +213,7 @@ class Main(SimplePlugin):
 
         return ar_chan
 
-    def channels_gen(self):
+    def live(self):
         channels = self.channel_array_gen()
         epg_data = self.get_epgs()
 
@@ -250,16 +241,13 @@ class Main(SimplePlugin):
                         p_desc_long = epg[10]
                         p_img = epg[11]
 
-                if p_start != '' and p_end != '':
-                    dt_start = datetime.fromtimestamp(int(p_start) / 1000)
-                    dt_end = datetime.fromtimestamp(int(p_end) / 1000)
-
-                    start = dt_start.strftime("%H:%M")
-                    end = dt_end.strftime("%H:%M")
+                if p_start and p_end:
+                    dt_start = datetime.utcfromtimestamp(int(p_start) / 1000)
+                    dt_end = datetime.utcfromtimestamp(int(p_end) / 1000)
 
                     if p_title != '':
                         channel = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch[1])
-                        time_delta = '[COLOR 80FFFFFF][B][{0} - {1}][/B][/COLOR]'.format(start, end)
+                        time_delta = f'[COLOR 80FFFFFF][B][{dt_start:%H:%M} - {dt_end:%H:%M}][/B][/COLOR]'
 
                         title = self.title_format.format(channel=channel, title=p_title, time=time_delta)
                 else:
@@ -317,7 +305,7 @@ class Main(SimplePlugin):
 
         return ar_chan
 
-    def replay_channels_gen(self):
+    def replay(self):
         with self.directory() as kdir:
             for ch in self.replay_channels_array_gen():
                 set_info = {'title': ch[1], 'sorttitle': ch[1], 'plot': ''}
@@ -345,18 +333,17 @@ class Main(SimplePlugin):
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def replay_programs_array_gen(self, ch_code, date, retry=0):
         def hm(t):
-            ts = time.localtime(t / 1000)
-            return add_zero(ts.tm_hour) + ':' + add_zero(ts.tm_min)
+            return f'{datetime.fromtimestamp(t / 1000):%H:%S}'
 
         url = f'https://tvpstream.tvp.pl/api/tvp-stream/program-tv/index?station_code={ch_code}&date={date}'
         response = self.jget(url)
         if 'data' not in response:
             raise RepeatException()
         ar_prog = []
-        time_now = int(time.time()) * 1000
+        now_msec = int(datetime.now().timestamp() * 1000)  # TODO handle timezone
 
         for p in response['data']:
-            if p['date_start'] < time_now:
+            if p['date_start'] < now_msec:
                 p_id = p['record_id']
                 ch_code = p['station_code']
 
@@ -377,7 +364,7 @@ class Main(SimplePlugin):
                         if logo:
                             p_logo = logo['url'].replace('{width}', '360').replace('{height}', '205')
 
-                ar_prog.append(ChannelInfo(p_id, ch_code, p_title, p_desc, p_time_delta, p_logo, ch_name))
+                ar_prog.append(ReplayChannelInfo(p_id, ch_code, p_title, p_desc, p_time_delta, p_logo, ch_name))
 
         return ar_prog
 
@@ -454,15 +441,8 @@ class Main(SimplePlugin):
 
         return urllib_parse.urlunparse(input_url_list)
 
-    @staticmethod
-    def gen_begin_time_from_timedelta(delta_min):
-        time_now = int(time.time())
-
-        begin_timestamp = time_now - delta_min * 60
-        utc_begin_time_object = datetime.utcfromtimestamp(begin_timestamp)
-        time_format_pattern = '%Y%m%dT%H%M%S'
-
-        return utc_begin_time_object.strftime(time_format_pattern)
+    def gen_begin_time_from_timedelta(self, delta_min):
+        return f'{datetime.utcnow() - timedelta(minutes=delta_min):%Y%m%dT%H%M%S}'
 
     @staticmethod
     def get_stream_of_type(streams):
