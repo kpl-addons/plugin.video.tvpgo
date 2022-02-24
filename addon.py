@@ -48,41 +48,57 @@ import xbmcvfs
 import re
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
+from collections import namedtuple
+
+# imports for libka only
+from functools import wraps
+from xbmc import sleep as xbmc_sleep
+
+
+# TODO:  move it to libka.utils
+def repeat_call(repeat, delay=0, catch=Exception, *, on_fail=None):
+    """Repeat `repeat` times. Delay `delay` between retries."""
+    def decorator(method):
+        @wraps(method)
+        def wrapper(*args, **kwargs):
+            for n in range(repeat):
+                try:
+                    return method(*args, **kwargs)
+                except catch as exc:
+                    print(f'{method}(*{args}, **{kwargs}): failed n={n}: {exc}')
+                xbmc_sleep(int(1000 * delay))
+                # time.sleep(delay)
+            if on_fail is not None:
+                on_fail()
+
+        return wrapper
+
+    return decorator
+
+
+#: Channel info
+ChannelInfo = namedtuple('ChannelInfo', 'id code title desc time_delta logo name')
+
 
 colors = ['', 'skyblue', 'dodgerblue', 'lightgreen', 'indianred', 'thistle', 'goldenrod', 'sandybrown', 'button_focus']
 
-format_list = addon.getSetting('tvpgo_format')
-if format_list == '0':
-    form = 0
-else:
-    form = 1
+# XXX - not used
+# quantity = addon.getSetting('tvpgo_quantity')
 
-quantity = addon.getSetting('tvpgo_quantity')
-
-try:
-    view = int(addon.getSetting('tvpgo_auto_view'))
-except Exception:
-    view = 0
-views = ['default', 'episodes', 'files', 'movies', 'tvshows', 'videos']
-
-ordered = addon.getSetting('tvpgo_sort')
-if ordered == '0':
-    order = 0
-else:
-    order = 1
-
-addon_path = xbmcvfs.translatePath(addon.getAddonInfo('path'))
-
-thumb = os.path.join(addon_path, 'resources', 'art', 'landscape.png')
-poster = os.path.join(addon_path, 'resources', 'art', 'poster.png')
-banner = os.path.join(addon_path, 'resources', 'art', 'banner.png')
-icon = os.path.join(addon_path, 'icon.png')
-fanart = os.path.join(addon_path, 'fanart.png')
-timeout = (3, 5)
+# XXX - not used
+# try:
+#     view = int(addon.getSetting('tvpgo_auto_view'))
+# except Exception:
+#     view = 0
+# views = ['default', 'episodes', 'files', 'movies', 'tvshows', 'videos']
 
 
 class SourceException(Exception):
+    pass
+
+
+class RepeatException(Exception):
     pass
 
 
@@ -93,25 +109,33 @@ def add_zero(x):
         return str(x)
 
 
-def get_date(x):
-    ts = time.localtime(x)
-    return str(ts.tm_year) + '-' + str(add_zero(ts.tm_mon)) + '-' + str(add_zero(ts.tm_mday))
-
-
 class Main(SimplePlugin):
 
     def __init__(self):
         super().__init__()
-        self.color: int = self.setting.get_int('tvpgo_color', 0)
+        self.color: int = self.settings.get_int('tvpgo_color', 0)
+        if self.settings.tvpgo_format == 0:
+            self.title_format: str = '{channel} {time} - {title}'
+        else:
+            self.title_format: str = '{channel} {title} - {time}'
+
+        self.thumb = self.media.image('landscape.png')
+        self.poster = self.media.image('poster.png')
+        self.banner = self.media.image('banner.png')
+        self.icon = self.resources.base / 'icon.png'
+        self.fanart = self.resources.base / 'fanart.png'
 
     def home(self):
+        # default art
+        art = {'thumb': self.thumb, 'poster': self.poster, 'banner': self.banner,
+               'icon': self.icon, 'fanart': self.fanart}
         with self.directory() as kdir:
             kdir.menu('Kanały na żywo', self.channels_gen,
                       info={'title': 'Kanały na żywo', 'sorttitle': 'Kanały na żywo', 'plot': ''},
-                      art={'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+                      art=art)
             kdir.menu('Replay', self.replay_channels_gen,
                       info={'title': 'Replay', 'sorttitle': 'Replay', 'plot': ''},
-                      art={'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+                      art=art)
 
     # def get_requests(self, url, headers=None, data=None, txt=False):
     #     try:
@@ -125,10 +149,17 @@ class Main(SimplePlugin):
     #         else:
     #             return response.text
     #     except Exception:
-    #         xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
+    #         xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028, 'Connection to the service has failed'), xbmcgui.NOTIFICATION_INFO, 6000, False)
     #         raise SourceException('Error loading list')
 
-    def get_epgs(self, retry=0):
+    # HACK, "@staticmethod" will be removed after move repeat_call to libka
+    @staticmethod
+    def _fail_notification():
+        xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'),
+                                      L(30028, 'Connection to the service has failed'),
+                                      xbmcgui.NOTIFICATION_INFO, 6000, False)
+
+    def get_epgs(self):
         p_start = ''
         p_end = ''
         p_title = ''
@@ -137,8 +168,6 @@ class Main(SimplePlugin):
         p_desc = ''
         p_desc_long = ''
         p_img = ''
-
-        retry += 1
 
         url = 'https://www.tvp.pl/program-tv'
 
@@ -154,24 +183,13 @@ class Main(SimplePlugin):
             'Accept-Language': 'sv,en;q=0.9,en-GB;q=0.8,en-US;q=0.7,pl;q=0.6,fr;q=0.5',
         }
 
-        response = self.get(url, headers=headers)
-        try:
-            stations_regex = re.compile(r'window.__stationsProgram\[\d+\]\s=\s(.*?)</script>',
-                                        re.MULTILINE | re.DOTALL)
-            finds = stations_regex.finditer(response)
-        except Exception:
-            time.sleep(1)
-            if retry < 6:
-                return self.get_epgs(retry)
-            else:
-                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028),
-                                              xbmcgui.NOTIFICATION_INFO, 6000, False)
-                raise SourceException('Error loading list')
+        response = self.get(url, headers=headers).text
+        stations_regex = re.compile(r'window.__stationsProgram\[\d+\]\s=\s(.*?)</script>',
+                                    re.MULTILINE | re.DOTALL)
 
         epg_data = []
-
-        for js_data in finds:
-            js_data = re.sub(r'},\n}', r'}\n}', js_data).replace(';', '')
+        for match in stations_regex.finditer(response):
+            js_data = re.sub(r'},\n}', r'}\n}', match.group(1)).replace(';', '')
 
             data = json.loads(js_data)
             for e in data['items']:
@@ -220,19 +238,14 @@ class Main(SimplePlugin):
 
         return epg_data
 
-    def channel_array_gen(self, retry=0):
-        retry += 1
+    @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
+    def channel_array_gen(self):
         url = "https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations"
         response = self.jget(url)
         try:
             ch_data = response['data']
         except Exception:
-            time.sleep(1)
-            if retry < 6:
-                return self.channel_array_gen(retry)
-            else:
-                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-                raise SourceException('Error loading list')
+            raise RepeatException()
 
         ar_chan = []
         for c in ch_data:
@@ -246,7 +259,7 @@ class Main(SimplePlugin):
 
             ar_chan.append([ch_code, ch_name, ch_img, ch_id])
 
-        if order == 1:
+        if self.settings.tvpgo_sort == 1:
             ar_chan = sorted(ar_chan, key=lambda x: x[1])
 
         return ar_chan
@@ -290,68 +303,47 @@ class Main(SimplePlugin):
                         channel = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch[1])
                         time_delta = '[COLOR 80FFFFFF][B][{0} - {1}][/B][/COLOR]'.format(start, end)
 
-                        if form == 0:
-                            title = '{0} {1} - {2}'.format(channel, time_delta, p_title)
-                        else:
-                            title = '{0} {1} - {2}'.format(channel, p_title, time_delta)
+                        title = self.title_format.format(channel=channel, title=p_title, time=time_delta)
                 else:
                     title = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch[1])
 
                 if ch[2]:
-                    art = ({'thumb': ch[2], 'poster': p_img, 'banner': banner, 'icon': ch[2], 'fanart': p_img})
+                    art = ({'thumb': ch[2], 'poster': p_img, 'banner': self.banner, 'icon': ch[2], 'fanart': p_img})
                 else:
-                    art = ({'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart})
+                    art = ({'thumb': self.thumb, 'poster': self.poster, 'banner': self.banner,
+                            'icon': self.icon, 'fanart': self.fanart})
                 kdir.play(title, call(self.play_channel, code=ch[0], ch_id=ch[3]), art=art,
                           info={'title': title, 'sorttitle': title, 'tvshowtitle': title, 'status': p_live,
                                 'year': p_year, 'plotoutline': p_desc,
                                 'plot': p_desc_long, 'duration': p_duration})
 
-    def play_channel(self, code, ch_id, retry=0):
-        retry += 1
+    @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
+    def play_channel(self, code, ch_id):
         streams = ''
-
         url = 'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={code}'.format(code=code)
-
         response = self.jget(url)
         try:
             live = response['data']
             if live:
                 urls = live['stream_url']
                 response = self.jget(urls)
-
                 streams = response['formats']
-
         except Exception:
-            time.sleep(1)
-            if retry < 6:
-                return self.play_channel(code, ch_id, retry)
-            else:
-                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-                raise SourceException('Error loading list')
+            raise RepeatException() from None
 
         url_stream, protocol, mime_type = self.get_stream_of_type(streams)
         url_stream = self.apply_timeshift(url_stream)
         self.play(url_stream, protocol, mime_type)
 
-    def replay_channels_array_gen(self, retry=0):
-        retry += 1
-
+    @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
+    def replay_channels_array_gen(self):
         url = "https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations"
-
         response = self.jget(url)
-        try:
-            ch_data = response['data']
-        except Exception:
-            time.sleep(1)
-            if retry < 6:
-                return self.replay_channels_array_gen(retry)
-            else:
-                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-                raise SourceException('Error loading list')
+        if 'data' not in response:
+            raise RepeatException()
 
         ar_chan = []
-
-        for c in ch_data:
+        for c in response['data']:
             ch_code = c['code']
             ch_name = c['name'].replace('EPG - ', '')
 
@@ -362,7 +354,7 @@ class Main(SimplePlugin):
 
             ar_chan.append([ch_code, ch_name, ch_img, ch_id])
 
-        if order == 1:
+        if self.settings.tvpgo_sort == 1:
             ar_chan = sorted(ar_chan, key=lambda x: x[1])
 
         return ar_chan
@@ -373,54 +365,39 @@ class Main(SimplePlugin):
                 set_info = {'title': ch[1], 'sorttitle': ch[1], 'plot': ''}
                 if ch[2]:
                     kdir.menu(ch[1], call(self.replay_calendar_gen, ch_code=ch[0], ch_image=ch[2]),
-                              art={'thumb': ch[2], 'poster': ch[2], 'banner': banner, 'icon': icon, 'fanart': fanart},
+                              art={'thumb': ch[2], 'poster': ch[2], 'banner': self.banner,
+                                   'icon': self.icon, 'fanart': self.fanart},
                               info=set_info)
                 else:
                     kdir.menu(ch[1], call(self.replay_calendar_gen, ch_code=ch[0], ch_image=ch[2]),
-                              art={'thumb': thumb, 'poster': poster, 'banner': banner, 'icon': icon, 'fanart': fanart},
+                              art={'thumb': self.thumb, 'poster': self.poster, 'banner': self.banner,
+                                   'icon': self.icon, 'fanart': self.fanart},
                               info=set_info)
 
     def replay_calendar_gen(self, ch_code, ch_image):
-        time_now = int(time.time())
-        ar_date = []
-        i = 0
-        while i <= 6:
-            day = time_now - i * 24 * 60 * 60
-            ar_date.append(get_date(day))
-            i = i + 1
-
+        now = datetime.now()
+        ar_date = [f'{now - timedelta(days=n):%Y-%m-%d}' for n in range(7)]
         with self.directory() as kdir:
             for date in ar_date:
                 kdir.menu(date, call(self.replay_programs_gen, ch_code=ch_code, ch_img=ch_image, date=date),
                           info={'title': date, 'sorttitle': date, 'plot': ''},
-                          art={'thumb': ch_image, 'poster': ch_image, 'banner': banner, 'icon': icon,
-                               'fanart': fanart})
+                          art={'thumb': ch_image, 'poster': ch_image, 'banner': self.banner, 'icon': self.icon,
+                               'fanart': self.fanart})
 
+    @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def replay_programs_array_gen(self, ch_code, date, retry=0):
-        retry += 1
-
-        url = f'https://tvpstream.tvp.pl/api/tvp-stream/program-tv/index?station_code={ch_code}&date={date}'
-
-        response = self.jget(url)
-        try:
-            pr_data = response['data']
-        except Exception:
-            time.sleep(1)
-            if retry < 6:
-                return self.replay_programs_array_gen(ch_code, date, retry)
-            else:
-                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-                raise SourceException('Error loading list')
-
-        ar_prog = []
-
-        time_now = int(time.time()) * 1000
-
         def hm(t):
             ts = time.localtime(t / 1000)
             return add_zero(ts.tm_hour) + ':' + add_zero(ts.tm_min)
 
-        for p in pr_data:
+        url = f'https://tvpstream.tvp.pl/api/tvp-stream/program-tv/index?station_code={ch_code}&date={date}'
+        response = self.jget(url)
+        if 'data' not in response:
+            raise RepeatException()
+        ar_prog = []
+        time_now = int(time.time()) * 1000
+
+        for p in response['data']:
             if p['date_start'] < time_now:
                 p_id = p['record_id']
                 ch_code = p['station_code']
@@ -442,50 +419,38 @@ class Main(SimplePlugin):
                         if logo:
                             p_logo = logo['url'].replace('{width}', '360').replace('{height}', '205')
 
-                ar_prog.append([p_id, ch_code, p_title, p_desc, p_time_delta, p_logo, ch_name])
+                ar_prog.append(ChannelInfo(p_id, ch_code, p_title, p_desc, p_time_delta, p_logo, ch_name))
 
         return ar_prog
 
     def replay_programs_gen(self, ch_code, ch_img, date):
         with self.directory() as kdir:
             for p in self.replay_programs_array_gen(ch_code, date):
-                channel = f'[COLOR {colors[self.color]}][B] {p[6]} [/B][/COLOR]'
-                if form == 0:
-                    title = f'{channel} {p[4]} - {p[2]}'
-                else:
-                    title = f'{channel} {p[2]} - {p[4]}'
-                if p[5]:
-                    art = {'thumb': p[5], 'poster': p[5], 'banner': banner, 'icon': icon, 'fanart': fanart}
-                else:
-                    art = {'thumb': ch_img, 'poster': ch_img, 'banner': banner, 'icon': icon, 'fanart': fanart}
+                channel = f'[COLOR {colors[self.color]}][B] {p.name} [/B][/COLOR]'
+                title = self.title_format.format(channel=channel, title=p.title, time=p.time_delta)
+                art = {'thumb': p.logo or ch_img, 'poster': p.logo or ch_img, 'banner': banner,
+                       'icon': icon, 'fanart': fanart}
 
-                kdir.play(title, call(self.play_programme, code=ch_code, prog_id=p[0]),
-                          info={'title': title, 'sorttitle': p[2], 'plot': p[3]}, art=art)
+                kdir.play(title, call(self.play_programme, code=ch_code, prog_id=p.id),
+                          info={'title': title, 'sorttitle': p.title, 'plot': p.descr}, art=art)
 
+    @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def get_replay_program_streams(self, ch_code, prog_id, retry=0):
         retry += 1
 
         url = f'https://sport.tvp.pl/api/tvp-stream/stream/data?station_code={ch_code}&record_id={prog_id}'
 
         response = self.jget(url)
-        try:
-            replay = response['data']
-        except Exception:
-            time.sleep(1)
-            if retry < 6:
-                return self.get_replay_program_streams(code, prog_id, retry)
-            else:
-                xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
-                raise SourceException('Error loading list')
+        if 'data' not in response:
+            raise RepeatException()
 
-        urls = replay['stream_url']
+        urls = response['data']['stream_url']
         response = self.jget(urls)
         streams = response['formats']
 
         return streams
 
-    @staticmethod
-    def play(url_stream, drm_protocol, drm_mime_type=None):
+    def play(self, url_stream, drm_protocol, drm_mime_type=None):
         from inputstreamhelper import Helper  # pylint: disable=import-outside-toplevel
 
         is_helper = Helper(drm_protocol)
@@ -495,7 +460,7 @@ class Main(SimplePlugin):
                 play_item.setMimeType(drm_mime_type)
             play_item.setProperty('inputstreamaddon', is_helper.inputstream_addon)
             play_item.setProperty('inputstream.adaptive.manifest_type', drm_protocol)
-            xbmcplugin.setResolvedUrl(handle=addon_handle, succeeded=True, listitem=play_item)
+            xbmcplugin.setResolvedUrl(handle=self.handle, succeeded=True, listitem=play_item)
 
     def play_programme(self, code, prog_id):
         streams = self.get_replay_program_streams(code, prog_id)
@@ -504,8 +469,8 @@ class Main(SimplePlugin):
 
     def apply_timeshift(self, url_stream, keep_begin_time=True):
         if url_stream is not None:
-            time_delta = int(addon.getSetting('tvpgo_timeshift_delta_value'))
-            if addon.getSetting('tvpgo_timeshift_type') == L(30004) and 0 < time_delta <= 10080:
+            time_delta = self.settings.tvpgo_timeshift_delta_value
+            if self.settings.tvpgo_timeshift_type == 1 and 0 < time_delta <= 10080:
                 url_stream = self.adjust_timeshift_args(url_stream,
                                                         begin_time=self.gen_begin_time_from_timedelta(time_delta))
             else:
@@ -566,12 +531,12 @@ class Main(SimplePlugin):
         if url_stream != '':
             return url_stream, protocol_type, stream_mime_type
         else:
-            xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028), xbmcgui.NOTIFICATION_INFO, 6000, False)
+            xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028, 'Connection to the service has failed'), xbmcgui.NOTIFICATION_INFO, 6000, False)
             raise SourceException('Error loading list')
 
     def build_m3u(self):
-        path_m3u = self.setting.tvpgo_path_m3u
-        file_name = self.setting.tvpgo_filename
+        path_m3u = self.settings.tvpgo_path_m3u
+        file_name = self.settings.tvpgo_filename
 
         if not file_name or not path_m3u:
             xbmcgui.Dialog().notification('TVP GO', L(30022, 'Set filename and destination directory'),
