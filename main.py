@@ -478,31 +478,24 @@ class Main(SimplePlugin):
 
     @staticmethod
     def get_stream_of_type(streams):
-        url_stream = ''
-        protocol_type = ''
-        stream_mime_type = ''
-
         for s in streams:
             if s['mimeType'] == 'application/dash+xml' and not ('mobile' in s['url']):
                 url_stream = s['url']
                 protocol_type = 'mpd'
                 stream_mime_type = 'application/xml+dash'
+                return url_stream, protocol_type, stream_mime_type
 
             elif s['mimeType'] == 'application/x-mpegurl' and not ('mobile' in s['url']):
                 url_stream = s['url']
                 protocol_type = 'hls'
                 stream_mime_type = 'application/x-mpegurl'
+                return url_stream, protocol_type, stream_mime_type
 
             elif s['mimeType'] == 'video/mp2t' and not ('mobile' in s['url']):
                 url_stream = s['url']
                 protocol_type = 'hls'
                 stream_mime_type = 'video/mp2t'
-
-        if url_stream != '':
-            return url_stream, protocol_type, stream_mime_type
-        else:
-            xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028, 'Connection to the service has failed'), xbmcgui.NOTIFICATION_INFO, 6000, False)
-            raise SourceException('Error loading list')
+                return url_stream, protocol_type, stream_mime_type
 
     def build_m3u(self):
         path_m3u = self.settings.tvpgo_path_m3u
