@@ -10,7 +10,6 @@
 		<setting id="tvpgo_color" label="30013" type="enum" default="0" lvalues="30008|30014|30015|30016|30017|30018|30019|30020|30038"/>
 		<setting id="tvpgo_format" label="30030" type="enum" default="0" lvalues="30031|30032"/>
 		<setting id="tvpgo_sort" label="30011" type="enum" default="0" lvalues="30008|30026"/>
-        <setting id="tvpgo_auto_view" label="30010" type="enum" default="0" lvalues="30008|30033|30034|30035|30036|30037"/>
     	<setting id="tvpgo_quantity" label="30012" type="labelenum" values="65|150|250|500" default="65" />
     </category>  
 	<category label="30021">

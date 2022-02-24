@@ -95,13 +95,6 @@ colors = ['', 'skyblue', 'dodgerblue', 'lightgreen', 'indianred', 'thistle', 'go
 # XXX - not used
 # quantity = addon.getSetting('tvpgo_quantity')
 
-# XXX - not used
-# try:
-#     view = int(addon.getSetting('tvpgo_auto_view'))
-# except Exception:
-#     view = 0
-# views = ['default', 'episodes', 'files', 'movies', 'tvshows', 'videos']
-
 
 class SourceException(Exception):
     pass
@@ -177,7 +170,7 @@ class Main(SimplePlugin):
         }
         url = 'https://www.tvp.pl/program-tv'
         response = self.get(url, headers=headers).text
-        stations_regex = re.compile(r'window.__stationsProgram\[\d+\]\s=\s(.*?)</script>',
+        stations_regex = re.compile(r'window.__stationsProgram\[\d+]\s=\s(.*?)</script>',
                                     re.MULTILINE | re.DOTALL)
 
         epg_data = []
@@ -313,6 +306,7 @@ class Main(SimplePlugin):
 
         url_stream, protocol, mime_type = self.get_stream_of_type(streams)
         url_stream = self.apply_timeshift(url_stream)
+        log.info('URL_STREAM=== ' + url_stream)
         self.play(url_stream, protocol, mime_type)
 
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
