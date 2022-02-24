@@ -48,7 +48,7 @@ import json
 from datetime import datetime, timedelta
 from collections import namedtuple
 
-from libka import SimplePlugin, call, L
+from libka import SimplePlugin, call, L, PathArg
 from libka.logs import log
 from libka.format import safefmt
 from libka.utils import adict
@@ -85,6 +85,9 @@ ChannelInfo = namedtuple('ChannelInfo', 'id code name title descr time_delta img
 #: Singe EPG info
 EpgInfo = namedtuple('EpgInfo', 'id code live start end duration title year land desc desc_long img',
                      defaults=('', '', '', '', '', '', '', '', '', ''))
+EpgInfo.dt_start = property(lambda self: datetime.fromtimestamp(self.start / 1000))
+EpgInfo.dt_end = property(lambda self: datetime.fromtimestamp(self.end / 1000))
+EpgInfo.time_range = property(lambda self: f'{self.dt_start:%H:%M} - {self.dt_end:%H:%M}')
 
 
 colors = ['', 'skyblue', 'dodgerblue', 'lightgreen', 'indianred', 'thistle', 'goldenrod', 'sandybrown', 'button_focus']
@@ -256,26 +259,44 @@ class Main(SimplePlugin):
                     else:
                         title = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch.name)
 
-                    if ch.img:
-                        art = ({'thumb': ch.img, 'poster': epg.img, 'banner': self.banner, 'icon': ch.img, 'fanart': epg.img})
-                    else:
-                        art = ({'thumb': self.thumb, 'poster': self.poster, 'banner': self.banner,
-                                'icon': self.icon, 'fanart': self.fanart})
+                    thumb = ch.img or self.thumb
+                    poster = epg.img or self.poster
+                    art = ({'thumb': thumb, 'poster': poster, 'banner': self.banner,
+                            'icon': self.icon, 'fanart': self.fanart})
                     kdir.play(title, call(self.play_channel, code=ch.code, ch_id=ch.id), art=art,
                               info={'title': title, 'sorttitle': title, 'tvshowtitle': title, 'status': epg.live,
                                     'year': epg.year, 'plotoutline': epg.desc,
-                                    'plot': epg.desc_long, 'duration': epg.duration})
+                                    'plot': epg.desc_long, 'duration': epg.duration},
+                              menu=[
+                                  (L('Program'), self.cmd.Container.Update(self.program, epg.code)),
+                              ])
                 else:
                     # XXX  DEBUG only
                     kdir.item(f'Missing EPG for {ch}', '/')
 
-    def program(self, code):
+    def program(self, code=None):  # HACK, without None exception raises. TODO: investigate it.
         """List EPG for given program."""
-        epg_list = self.get_epgs(all_day=True, tv_code=code)
-        # TODO: to be contined...  (rysson)
+        log.info(f'PPPPPPPPPPPPPPPPP: code={code!r}')
+        with self.directory() as kdir:
+            now_msec = datetime.now().timestamp() * 1000
+            for epg in self.get_epgs(all_day=True, tv_code=code):
+                title = f'[COLOR 80FFFFFF][B][{epg.time_range}][/B][/COLOR] – {epg.title}'
+                if epg.start > now_msec:
+                    kdir.item(title, self.program)
+                else:
+                    thumb = epg.img or self.thumb
+                    poster = epg.img or self.poster
+                    art = ({'thumb': thumb, 'poster': poster, 'banner': self.banner,
+                            'icon': self.icon, 'fanart': self.fanart})
+                    info = {'title': title, 'sorttitle': title, 'tvshowtitle': title, 'status': epg.live,
+                            'year': epg.year, 'plotoutline': epg.desc, 'plot': epg.desc_long, 'duration': epg.duration}
+                    if epg.end < now_msec:
+                        kdir.play(title, call(self.play_programme, code=epg.code, prog_id=epg.id), info=info, art=art)
+                    else:
+                        kdir.play(title, call(self.play_channel, code=epg.code), art=art, info=info)
 
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
-    def play_channel(self, code, ch_id):
+    def play_channel(self, code, ch_id=None):
         streams = ''
         url = 'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={code}'.format(code=code)
         response = self.jget(url)
