@@ -236,21 +236,21 @@ class Main(SimplePlugin):
         epg_data = {epg.code: epg for epg in self.get_epgs()}
 
         with self.directory() as kdir:
-            T = self.tz_offset
             for ch in channels:
+                channel = '[COLOR {color}][B] {name} [/B][/COLOR]'.format(color=colors[self.color], name=ch.name)
                 epg = epg_data.get(ch.code)
                 if epg:
                     if epg.start and epg.end:
                         dt_start = datetime.fromtimestamp(int(epg.start) / 1000)
                         dt_end = datetime.fromtimestamp(int(epg.end) / 1000)
 
-                        if epg.title != '':
-                            channel = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch.name)
+                        if epg.title:
                             time_delta = f'[COLOR 80FFFFFF][B][{dt_start:%H:%M} - {dt_end:%H:%M}][/B][/COLOR]'
-
                             title = self.title_format.format(channel=channel, title=epg.title, time=time_delta)
+                        else:
+                            title = channel
                     else:
-                        title = '[COLOR {0}][B] {1} [/B][/COLOR]'.format(colors[self.color], ch.name)
+                        title = channel
 
                     thumb = ch.img or self.thumb
                     poster = epg.img or self.poster
@@ -264,8 +264,12 @@ class Main(SimplePlugin):
                                   (L('Program'), self.cmd.Container.Update(self.program, epg.code)),
                               ])
                 else:
-                    # XXX  DEBUG only
-                    kdir.item(f'Missing EPG for {ch}', '/')
+                    log.debug(f'Missing EPG for {ch}')
+                    title = channel
+                    thumb = ch.img or self.thumb
+                    art = ({'thumb': thumb, 'poster': self.poster, 'banner': self.banner,
+                            'icon': self.icon, 'fanart': self.fanart})
+                    kdir.play(title, call(self.play_channel, code=ch.code, ch_id=ch.id), art=art)
 
     def nop(self):
         """No-Operation."""
