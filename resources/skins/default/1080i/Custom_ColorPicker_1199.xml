@@ -1,0 +1,1388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window id="1199">
+    <defaultcontrol>3110</defaultcontrol>
+    <onunload>ClearProperty(colourpicker)</onunload>
+    <controls>
+        <control type="group">
+            <width>980</width>
+            <height>720</height>
+            <centertop>50%</centertop>
+            <centerleft>50%</centerleft>
+            <control type="image">
+                <left>-2000</left>
+                <top>-2000</top>
+                <width>6000</width>
+                <height>6000</height>
+                <animation effect="fade" time="300">VisibleChange</animation>
+                <animation effect="fade" start="0" end="100" time="300">WindowOpen</animation>
+                <animation effect="fade" start="100" end="0" time="200">WindowClose</animation>
+                <texture colordiffuse="C2FFFFFF">colors/ff000000.jpg</texture>
+            </control>
+            <control type="group">
+                <width>980</width>
+                <height>720</height>
+                <control type="image">
+                    <left>0</left>
+                    <top>0</top>
+                    <right>0</right>
+                    <bottom>0</bottom>
+                    <texture colordiffuse="FF1A2123">colors/ffffffff.jpg</texture>
+                </control>
+                <control type="image">
+                    <left>0</left>
+                    <top>0</top>
+                    <right>0</right>
+                    <height>70</height>
+                    <texture colordiffuse="ff01579b" border="2">colors/ffffffff.jpg</texture>
+                </control>
+                <control type="label">
+                    <left>40</left>
+                    <top>0</top>
+                    <right>100</right>
+                    <height>70</height>
+                    <font>font32_title</font>
+                    <label>Color Picker</label>
+                    <aligny>center</aligny>
+                    <shadowcolor>black</shadowcolor>
+                </control>
+            </control>
+            <!-- Dialog Content -->
+            <control type="group">
+                <left>30</left>
+                <right>30</right>
+                <bottom>30</bottom>
+                <top>120</top>
+                <!-- Swatches -->
+                <control type="group">
+                    <right>320</right>
+                    <!-- Colors Panel -->
+                    <control type="panel" id="3110">
+                        <onup>3110</onup>
+                        <ondown>3110</ondown>
+                        <onback>3012</onback>
+                        <onleft>8999</onleft>
+                        <onright>8999</onright>
+                        <scrolltime tween="sine" easing="out">50</scrolltime>
+                        <orientation>vertical</orientation>
+                        <preloaditems>2</preloaditems>
+                        <onclick>Skin.SetString(choosen_colour.name,$INFO[ListItem.Label])</onclick>
+                        <onclick>SetProperty(choosen_colour, $INFO[ListItem.Label])</onclick>
+                        <onclick>SetFocus(3010)</onclick>
+                        <itemlayout width="80" height="80">
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="image">
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                        </itemlayout>
+                        <focusedlayout width="80" height="80">
+                            <control type="image">
+                                <label>ffffffff</label>
+                                <texture background="true">$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="button">
+                                <visible>false</visible>
+                                <onfocus>Skin.SetString(choosen_colour.name, $INFO[ListItem.Label])</onfocus>
+                            </control>
+                            <control type="image">
+                                <top>-20</top>
+                                <left>-20</left>
+                                <width>120</width>
+                                <height>120</height>
+                                <bordersize>20</bordersize>
+                                <bordertexture border="32" colordiffuse="black">common/shadow-20.png</bordertexture>
+                                <texture border="20" colordiffuse="$INFO[ListItem.Label]">common/selectbox.png</texture>
+                            </control>
+                        </focusedlayout>
+                        <content>
+                            <item>
+                                <label>ffffebee</label>
+                                <icon>colors/ffffebee.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffcdd2</label>
+                                <icon>colors/ffffcdd2.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffef9a9a</label>
+                                <icon>colors/ffef9a9a.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe57373</label>
+                                <icon>colors/ffe57373.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffef5350</label>
+                                <icon>colors/ffef5350.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff44336</label>
+                                <icon>colors/fff44336.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe53935</label>
+                                <icon>colors/ffe53935.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffd32f2f</label>
+                                <icon>colors/ffd32f2f.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffc62828</label>
+                                <icon>colors/ffc62828.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffb71c1c</label>
+                                <icon>colors/ffb71c1c.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff8a80</label>
+                                <icon>colors/ffff8a80.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff5252</label>
+                                <icon>colors/ffff5252.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff1744</label>
+                                <icon>colors/ffff1744.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffd50000</label>
+                                <icon>colors/ffd50000.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffede7f6</label>
+                                <icon>colors/ffede7f6.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffd1c4e9</label>
+                                <icon>colors/ffd1c4e9.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffb39ddb</label>
+                                <icon>colors/ffb39ddb.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff9575cd</label>
+                                <icon>colors/ff9575cd.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff7e57c2</label>
+                                <icon>colors/ff7e57c2.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff673ab7</label>
+                                <icon>colors/ff673ab7.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff5e35b1</label>
+                                <icon>colors/ff5e35b1.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff512da8</label>
+                                <icon>colors/ff512da8.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff4527a0</label>
+                                <icon>colors/ff4527a0.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff311b92</label>
+                                <icon>colors/ff311b92.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffb388ff</label>
+                                <icon>colors/ffb388ff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff7c4dff</label>
+                                <icon>colors/ff7c4dff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff651fff</label>
+                                <icon>colors/ff651fff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff6200ea</label>
+                                <icon>colors/ff6200ea.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe1f5fe</label>
+                                <icon>colors/ffe1f5fe.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffb3e5fc</label>
+                                <icon>colors/ffb3e5fc.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff81d4fa</label>
+                                <icon>colors/ff81d4fa.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff4fc3f7</label>
+                                <icon>colors/ff4fc3f7.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff29b6f6</label>
+                                <icon>colors/ff29b6f6.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff03a9f4</label>
+                                <icon>colors/ff03a9f4.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff039be5</label>
+                                <icon>colors/ff039be5.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff0288d1</label>
+                                <icon>colors/ff0288d1.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff0277bd</label>
+                                <icon>colors/ff0277bd.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff01579b</label>
+                                <icon>colors/ff01579b.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff80d8ff</label>
+                                <icon>colors/ff80d8ff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff40c4ff</label>
+                                <icon>colors/ff40c4ff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00b0ff</label>
+                                <icon>colors/ff00b0ff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff0091ea</label>
+                                <icon>colors/ff0091ea.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe8f5e9</label>
+                                <icon>colors/ffe8f5e9.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffc8e6c9</label>
+                                <icon>colors/ffc8e6c9.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffa5d6a7</label>
+                                <icon>colors/ffa5d6a7.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff81c784</label>
+                                <icon>colors/ff81c784.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff66bb6a</label>
+                                <icon>colors/ff66bb6a.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff4caf50</label>
+                                <icon>colors/ff4caf50.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff43a047</label>
+                                <icon>colors/ff43a047.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff388e3c</label>
+                                <icon>colors/ff388e3c.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff2e7d32</label>
+                                <icon>colors/ff2e7d32.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff1b5e20</label>
+                                <icon>colors/ff1b5e20.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffb9f6ca</label>
+                                <icon>colors/ffb9f6ca.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff69f0ae</label>
+                                <icon>colors/ff69f0ae.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00e676</label>
+                                <icon>colors/ff00e676.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00c853</label>
+                                <icon>colors/ff00c853.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffffde7</label>
+                                <icon>colors/fffffde7.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffff9c4</label>
+                                <icon>colors/fffff9c4.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffff59d</label>
+                                <icon>colors/fffff59d.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffff176</label>
+                                <icon>colors/fffff176.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffee58</label>
+                                <icon>colors/ffffee58.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffeb3b</label>
+                                <icon>colors/ffffeb3b.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffdd835</label>
+                                <icon>colors/fffdd835.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffbc02d</label>
+                                <icon>colors/fffbc02d.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff9a825</label>
+                                <icon>colors/fff9a825.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff57f17</label>
+                                <icon>colors/fff57f17.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffff8d</label>
+                                <icon>colors/ffffff8d.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffff00</label>
+                                <icon>colors/ffffff00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffea00</label>
+                                <icon>colors/ffffea00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffd600</label>
+                                <icon>colors/ffffd600.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffbe9e7</label>
+                                <icon>colors/fffbe9e7.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffccbc</label>
+                                <icon>colors/ffffccbc.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffab91</label>
+                                <icon>colors/ffffab91.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff8a65</label>
+                                <icon>colors/ffff8a65.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff7043</label>
+                                <icon>colors/ffff7043.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff5722</label>
+                                <icon>colors/ffff5722.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff4511e</label>
+                                <icon>colors/fff4511e.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe64a19</label>
+                                <icon>colors/ffe64a19.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffd84315</label>
+                                <icon>colors/ffd84315.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffbf360c</label>
+                                <icon>colors/ffbf360c.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff9e80</label>
+                                <icon>colors/ffff9e80.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff6e40</label>
+                                <icon>colors/ffff6e40.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff3d00</label>
+                                <icon>colors/ffff3d00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffdd2c00</label>
+                                <icon>colors/ffdd2c00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffeceff1</label>
+                                <icon>colors/ffeceff1.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffcfd8dc</label>
+                                <icon>colors/ffcfd8dc.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffb0bec5</label>
+                                <icon>colors/ffb0bec5.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff90a4ae</label>
+                                <icon>colors/ff90a4ae.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff78909c</label>
+                                <icon>colors/ff78909c.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff607d8b</label>
+                                <icon>colors/ff607d8b.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff546e7a</label>
+                                <icon>colors/ff546e7a.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff455a64</label>
+                                <icon>colors/ff455a64.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff37474f</label>
+                                <icon>colors/ff37474f.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff263238</label>
+                                <icon>colors/ff263238.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffce4ec</label>
+                                <icon>colors/fffce4ec.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff8bbd0</label>
+                                <icon>colors/fff8bbd0.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff48fb1</label>
+                                <icon>colors/fff48fb1.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff06292</label>
+                                <icon>colors/fff06292.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffec407a</label>
+                                <icon>colors/ffec407a.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe91e63</label>
+                                <icon>colors/ffe91e63.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffd81b60</label>
+                                <icon>colors/ffd81b60.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffc2185b</label>
+                                <icon>colors/ffc2185b.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffad1457</label>
+                                <icon>colors/ffad1457.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff880e4f</label>
+                                <icon>colors/ff880e4f.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff80ab</label>
+                                <icon>colors/ffff80ab.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff4081</label>
+                                <icon>colors/ffff4081.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff50057</label>
+                                <icon>colors/fff50057.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffc51162</label>
+                                <icon>colors/ffc51162.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe8eaf6</label>
+                                <icon>colors/ffe8eaf6.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffc5cae9</label>
+                                <icon>colors/ffc5cae9.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff9fa8da</label>
+                                <icon>colors/ff9fa8da.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff7986cb</label>
+                                <icon>colors/ff7986cb.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff5c6bc0</label>
+                                <icon>colors/ff5c6bc0.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff3f51b5</label>
+                                <icon>colors/ff3f51b5.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff3949ab</label>
+                                <icon>colors/ff3949ab.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff303f9f</label>
+                                <icon>colors/ff303f9f.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff283593</label>
+                                <icon>colors/ff283593.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff1a237e</label>
+                                <icon>colors/ff1a237e.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff8c9eff</label>
+                                <icon>colors/ff8c9eff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff536dfe</label>
+                                <icon>colors/ff536dfe.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff3d5afe</label>
+                                <icon>colors/ff3d5afe.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff304ffe</label>
+                                <icon>colors/ff304ffe.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe0f7fa</label>
+                                <icon>colors/ffe0f7fa.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffb2ebf2</label>
+                                <icon>colors/ffb2ebf2.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff80deea</label>
+                                <icon>colors/ff80deea.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff4dd0e1</label>
+                                <icon>colors/ff4dd0e1.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff26c6da</label>
+                                <icon>colors/ff26c6da.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00bcd4</label>
+                                <icon>colors/ff00bcd4.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00acc1</label>
+                                <icon>colors/ff00acc1.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff0097a7</label>
+                                <icon>colors/ff0097a7.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00838f</label>
+                                <icon>colors/ff00838f.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff006064</label>
+                                <icon>colors/ff006064.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff84ffff</label>
+                                <icon>colors/ff84ffff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff18ffff</label>
+                                <icon>colors/ff18ffff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00e5ff</label>
+                                <icon>colors/ff00e5ff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00b8d4</label>
+                                <icon>colors/ff00b8d4.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff1f8e9</label>
+                                <icon>colors/fff1f8e9.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffdcedc8</label>
+                                <icon>colors/ffdcedc8.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffc5e1a5</label>
+                                <icon>colors/ffc5e1a5.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffaed581</label>
+                                <icon>colors/ffaed581.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff9ccc65</label>
+                                <icon>colors/ff9ccc65.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff8bc34a</label>
+                                <icon>colors/ff8bc34a.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff7cb342</label>
+                                <icon>colors/ff7cb342.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff689f38</label>
+                                <icon>colors/ff689f38.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff558b2f</label>
+                                <icon>colors/ff558b2f.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff33691e</label>
+                                <icon>colors/ff33691e.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffccff90</label>
+                                <icon>colors/ffccff90.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffb2ff59</label>
+                                <icon>colors/ffb2ff59.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff76ff03</label>
+                                <icon>colors/ff76ff03.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff64dd17</label>
+                                <icon>colors/ff64dd17.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffff8e1</label>
+                                <icon>colors/fffff8e1.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffecb3</label>
+                                <icon>colors/ffffecb3.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffe082</label>
+                                <icon>colors/ffffe082.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffd54f</label>
+                                <icon>colors/ffffd54f.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffca28</label>
+                                <icon>colors/ffffca28.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffc107</label>
+                                <icon>colors/ffffc107.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffb300</label>
+                                <icon>colors/ffffb300.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffa000</label>
+                                <icon>colors/ffffa000.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff8f00</label>
+                                <icon>colors/ffff8f00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff6f00</label>
+                                <icon>colors/ffff6f00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffe57f</label>
+                                <icon>colors/ffffe57f.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffd740</label>
+                                <icon>colors/ffffd740.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffc400</label>
+                                <icon>colors/ffffc400.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffab00</label>
+                                <icon>colors/ffffab00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffefebe9</label>
+                                <icon>colors/ffefebe9.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffd7ccc8</label>
+                                <icon>colors/ffd7ccc8.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffbcaaa4</label>
+                                <icon>colors/ffbcaaa4.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffa1887f</label>
+                                <icon>colors/ffa1887f.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff8d6e63</label>
+                                <icon>colors/ff8d6e63.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff795548</label>
+                                <icon>colors/ff795548.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff6d4c41</label>
+                                <icon>colors/ff6d4c41.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff5d4037</label>
+                                <icon>colors/ff5d4037.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff4e342e</label>
+                                <icon>colors/ff4e342e.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff3e2723</label>
+                                <icon>colors/ff3e2723.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff3e5f5</label>
+                                <icon>colors/fff3e5f5.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe1bee7</label>
+                                <icon>colors/ffe1bee7.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffce93d8</label>
+                                <icon>colors/ffce93d8.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffba68c8</label>
+                                <icon>colors/ffba68c8.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffab47bc</label>
+                                <icon>colors/ffab47bc.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff9c27b0</label>
+                                <icon>colors/ff9c27b0.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff8e24aa</label>
+                                <icon>colors/ff8e24aa.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff7b1fa2</label>
+                                <icon>colors/ff7b1fa2.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff6a1b9a</label>
+                                <icon>colors/ff6a1b9a.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff4a148c</label>
+                                <icon>colors/ff4a148c.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffea80fc</label>
+                                <icon>colors/ffea80fc.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe040fb</label>
+                                <icon>colors/ffe040fb.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffd500f9</label>
+                                <icon>colors/ffd500f9.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffaa00ff</label>
+                                <icon>colors/ffaa00ff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe3f2fd</label>
+                                <icon>colors/ffe3f2fd.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffbbdefb</label>
+                                <icon>colors/ffbbdefb.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff90caf9</label>
+                                <icon>colors/ff90caf9.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff64b5f6</label>
+                                <icon>colors/ff64b5f6.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff42a5f5</label>
+                                <icon>colors/ff42a5f5.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff2196f3</label>
+                                <icon>colors/ff2196f3.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff1e88e5</label>
+                                <icon>colors/ff1e88e5.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff1976d2</label>
+                                <icon>colors/ff1976d2.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff1565c0</label>
+                                <icon>colors/ff1565c0.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff0d47a1</label>
+                                <icon>colors/ff0d47a1.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff82b1ff</label>
+                                <icon>colors/ff82b1ff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff448aff</label>
+                                <icon>colors/ff448aff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff2979ff</label>
+                                <icon>colors/ff2979ff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff2962ff</label>
+                                <icon>colors/ff2962ff.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe0f2f1</label>
+                                <icon>colors/ffe0f2f1.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffb2dfdb</label>
+                                <icon>colors/ffb2dfdb.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff80cbc4</label>
+                                <icon>colors/ff80cbc4.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff4db6ac</label>
+                                <icon>colors/ff4db6ac.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff26a69a</label>
+                                <icon>colors/ff26a69a.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff009688</label>
+                                <icon>colors/ff009688.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00897b</label>
+                                <icon>colors/ff00897b.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00796b</label>
+                                <icon>colors/ff00796b.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00695c</label>
+                                <icon>colors/ff00695c.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff004d40</label>
+                                <icon>colors/ff004d40.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffa7ffeb</label>
+                                <icon>colors/ffa7ffeb.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff64ffda</label>
+                                <icon>colors/ff64ffda.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff1de9b6</label>
+                                <icon>colors/ff1de9b6.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff00bfa5</label>
+                                <icon>colors/ff00bfa5.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff9fbe7</label>
+                                <icon>colors/fff9fbe7.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff0f4c3</label>
+                                <icon>colors/fff0f4c3.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe6ee9c</label>
+                                <icon>colors/ffe6ee9c.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffdce775</label>
+                                <icon>colors/ffdce775.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffd4e157</label>
+                                <icon>colors/ffd4e157.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffcddc39</label>
+                                <icon>colors/ffcddc39.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffc0ca33</label>
+                                <icon>colors/ffc0ca33.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffafb42b</label>
+                                <icon>colors/ffafb42b.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff9e9d24</label>
+                                <icon>colors/ff9e9d24.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff827717</label>
+                                <icon>colors/ff827717.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff4ff81</label>
+                                <icon>colors/fff4ff81.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffeeff41</label>
+                                <icon>colors/ffeeff41.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffc6ff00</label>
+                                <icon>colors/ffc6ff00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffaeea00</label>
+                                <icon>colors/ffaeea00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffff3e0</label>
+                                <icon>colors/fffff3e0.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffe0b2</label>
+                                <icon>colors/ffffe0b2.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffcc80</label>
+                                <icon>colors/ffffcc80.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffb74d</label>
+                                <icon>colors/ffffb74d.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffa726</label>
+                                <icon>colors/ffffa726.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff9800</label>
+                                <icon>colors/ffff9800.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffb8c00</label>
+                                <icon>colors/fffb8c00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff57c00</label>
+                                <icon>colors/fff57c00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffef6c00</label>
+                                <icon>colors/ffef6c00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe65100</label>
+                                <icon>colors/ffe65100.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffd180</label>
+                                <icon>colors/ffffd180.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffab40</label>
+                                <icon>colors/ffffab40.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff9100</label>
+                                <icon>colors/ffff9100.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffff6d00</label>
+                                <icon>colors/ffff6d00.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fffafafa</label>
+                                <icon>colors/fffafafa.jpg</icon>
+                            </item>
+                            <item>
+                                <label>fff5f5f5</label>
+                                <icon>colors/fff5f5f5.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffeeeeee</label>
+                                <icon>colors/ffeeeeee.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffe0e0e0</label>
+                                <icon>colors/ffe0e0e0.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffbdbdbd</label>
+                                <icon>colors/ffbdbdbd.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff9e9e9e</label>
+                                <icon>colors/ff9e9e9e.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff757575</label>
+                                <icon>colors/ff757575.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff616161</label>
+                                <icon>colors/ff616161.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff424242</label>
+                                <icon>colors/ff424242.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff212121</label>
+                                <icon>colors/ff212121.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ff000000</label>
+                                <icon>colors/ff000000.jpg</icon>
+                            </item>
+                            <item>
+                                <label>ffffffff</label>
+                                <icon>colors/ffffffff.jpg</icon>
+                            </item>
+                        </content>
+                    </control>
+                </control>
+                <!-- Buttons -->
+                <control type="grouplist">
+                    <right>-40</right>
+                    <width>380</width>
+                    <orientation>vertical</orientation>
+                    <itemgap>0</itemgap>
+                    <usecontrolcoords>true</usecontrolcoords>
+                    <!-- Colours Preview -->
+                    <control type="group">
+                        <left>80</left>
+                        <right>80</right>
+                        <height>110</height>
+                        <visible>true</visible>
+                        <control type="group">
+                            <width>86.67</width>
+                            <centerleft>50%</centerleft>
+                            <control type="label">
+                                <align>center</align>
+                                <height>20</height>
+                                <font>font12</font>
+                                <textcolor>white</textcolor>
+                                <left>-10</left>
+                                <right>-10</right>
+                                <align>center</align>
+                                <label>Highlight</label>
+                            </control>
+                            <control type="group">
+                                <top>40</top>
+                                <height>40</height>
+                                <control type="image">
+                                    <texture border="32" colordiffuse="black">common/shadow-20.png</texture>
+                                    <visible>!Control.HasFocus(3021)</visible>
+                                </control>
+                                <control type="button" id="3021">
+                                    <texturefocus/>
+                                    <texturenofocus/>
+                                    <font/>
+                                    <textcolor>00ffffff</textcolor>
+                                    <onleft>3023</onleft>
+                                    <onright>3022</onright>
+                                    <onup>3012</onup>
+                                    <ondown>3015</ondown>
+                                    <onclick>SetProperty(colourpicker,Highlight)</onclick>
+                                    <onclick>SetFocus(3110)</onclick>
+                                </control>
+                                <control type="group">
+                                    <control type="image">
+                                        <texture colordiffuse="Skin.String(choosen_colour.name)" border="20">common/box.png</texture>
+                                        <visible>!Control.HasFocus(3110) | false</visible>
+                                    </control>
+                                    <control type="image">
+                                        <texture colordiffuse="$INFO[Container(3110).ListItem.Label]" border="20">common/box.png</texture>
+                                        <visible>Control.HasFocus(3110) + true</visible>
+                                    </control>
+                                    <control type="image">
+                                        <bordersize>20</bordersize>
+                                        <bordertexture border="32" colordiffuse="black">common/shadow-20.png</bordertexture>
+                                        <texture border="20" colordiffuse="Skin.String(choosen_colour.name)">common/selectbox.png</texture>
+                                        <visible>Control.HasFocus(3021)</visible>
+                                    </control>
+                                </control>
+                                <control type="image">
+                                    <centertop>50%</centertop>
+                                    <centerleft>50%</centerleft>
+                                    <width>16</width>
+                                    <height>16</height>
+                                    <texture>diffuse/circle.png</texture>
+                                    <visible>true</visible>
+                                </control>
+                            </control>
+                        </control>
+                    </control>
+                    <!-- Button grouplist -->
+                    <control type="grouplist" id="8999">
+                        <left>40</left>
+                        <right>40</right>
+                        <orientation>vertical</orientation>
+                        <itemgap>10</itemgap>
+                        <onleft>3110</onleft>
+                        <onright>3110</onright>
+                        <height>350</height>
+                        <onup condition="true">3021</onup>
+                        <onup condition="String.IsEqual(Window.Property(colourpicker),$LOCALIZE[31202])">3023</onup>
+                        <ondown condition="true">3021</ondown>
+                        <ondown condition="String.IsEqual(Window.Property(colourpicker),$LOCALIZE[31202])">3023</ondown>
+                        <!-- EDIT -->
+                        <control type="button" id="3010">
+                            <textoffsetx>10</textoffsetx>
+                            <label>Value: $INFO[Skin.String(choosen_colour.name)]</label>
+                            <align>center</align>
+                            <texturefocus colordiffuse="ff01579b" border="5">common/box.png</texturefocus>
+                            <alttexturefocus colordiffuse="ff01579b" border="5">common/box.png</alttexturefocus>
+                            <textoffsetx>40</textoffsetx>
+                            <top>0</top>
+                            <height>75</height>
+                            <aligny>center</aligny>
+                            <texturenofocus/>
+                            <texturefocus/>
+                            <alttexturefocus/>
+                            <onclick condition="true">Skin.SetString(choosen_colour.name)</onclick>
+                        </control>
+                        <!-- Close -->
+                        <control type="button" id="3012">
+                            <label>$LOCALIZE[15067]</label>
+                            <align>center</align>
+                            <texturefocus colordiffuse="ff01579b" border="5">common/box.png</texturefocus>
+                            <alttexturefocus colordiffuse="ff01579b" border="5">common/box.png</alttexturefocus>
+                            <textoffsetx>40</textoffsetx>
+                            <top>0</top>
+                            <height>75</height>
+                            <aligny>center</aligny>
+                            <texturenofocus/>
+                            <texturefocus/>
+                            <alttexturefocus/>
+                            <onclick>Action(Close)</onclick>
+                        </control>
+                    </control>
+                </control>
+            </control>
+        </control>
+    </controls>
+</window>

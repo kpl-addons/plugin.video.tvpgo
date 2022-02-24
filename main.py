@@ -48,6 +48,7 @@ import json
 from datetime import datetime, timedelta
 from collections import namedtuple
 
+from resources.lib.color_picker import ColorPicker
 from libka import SimplePlugin, call, L, PathArg
 from libka.logs import log
 from libka.format import safefmt
@@ -108,7 +109,7 @@ class Main(SimplePlugin):
 
     def __init__(self):
         super().__init__()
-        self.color: int = self.settings.get_int('tvpgo_color', 0)
+        self.color: str = self.settings.get_string('tvpgo_color')
         if self.settings.tvpgo_format == 0:
             self.title_format: str = '{channel} {time} - {title}'
         else:
@@ -237,7 +238,8 @@ class Main(SimplePlugin):
 
         with self.directory() as kdir:
             for ch in channels:
-                channel = '[COLOR {color}][B] {name} [/B][/COLOR]'.format(color=colors[self.color], name=ch.name)
+                log.info('KOLOREK ' + self.color)
+                channel = self.format_title(ch.name, style=[f'COLOR {self.color}', 'B'])
                 epg = epg_data.get(ch.code)
                 if epg:
                     if epg.start and epg.end:
@@ -529,4 +531,7 @@ class Main(SimplePlugin):
 if __name__ == '__main__':
     import sys
     log.info(f'============= {sys.argv}')
-    Main().run()
+    if sys.argv[1] == 'color_picker':
+        ColorPicker()
+    else:
+        Main().run()
