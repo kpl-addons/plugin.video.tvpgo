@@ -274,15 +274,17 @@ class Main(SimplePlugin):
                     # XXX  DEBUG only
                     kdir.item(f'Missing EPG for {ch}', '/')
 
+    def nop(self):
+        """No-Operation."""
+
     def program(self, code=None):  # HACK, without None exception raises. TODO: investigate it.
         """List EPG for given program."""
-        log.info(f'PPPPPPPPPPPPPPPPP: code={code!r}')
         with self.directory() as kdir:
             now_msec = datetime.now().timestamp() * 1000
             for epg in self.get_epgs(all_day=True, tv_code=code):
                 title = f'[COLOR 80FFFFFF][B][{epg.time_range}][/B][/COLOR] – {epg.title}'
                 if epg.start > now_msec:
-                    kdir.item(title, self.program)
+                    kdir.item(title, self.nop)
                 else:
                     thumb = epg.img or self.thumb
                     poster = epg.img or self.poster
