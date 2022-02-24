@@ -410,7 +410,9 @@ class Main(SimplePlugin):
             play_item = xbmcgui.ListItem(path=url_stream)
             if drm_mime_type is not None:
                 play_item.setMimeType(drm_mime_type)
-            play_item.setProperty('inputstreamaddon', is_helper.inputstream_addon)
+            play_item.setContentLookup(False)
+            play_item.setProperty('inputstream', is_helper.inputstream_addon)
+            play_item.setProperty("IsPlayable", "true")
             play_item.setProperty('inputstream.adaptive.manifest_type', drm_protocol)
             xbmcplugin.setResolvedUrl(handle=self.handle, succeeded=True, listitem=play_item)
 
