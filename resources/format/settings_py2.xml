@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings> 
+	<category label="30000">
+		<setting label="30001" type="lsep"/>
+	    <setting label="30002" id="tvpgo_timeshift_type" type="select" lvalues="30003|30004" default="0"/>
+		<setting label="30005" type="lsep"/>
+		<setting label="30006" id="tvpgo_timeshift_delta_value" type="number" enable="eq(-2,1)"/>
+	</category>
+	<category label="30007">
+		<setting id="tvpgo_color" label="30013" type="action"
+                 action="RunScript(plugin.video.tvpgo?color_picker)" default="ffffffff"/>
+		<setting id="tvpgo_highlight" type="bool" label="30039" default="false" />
+		<setting id="tvpgo_format" label="30030" type="enum" default="0" lvalues="30031|30032"/>
+		<setting id="tvpgo_sort" label="30011" type="enum" default="0" lvalues="30008|30026"/>
+    </category>  
+	<category label="30021">
+        <setting label="30022" type="lsep"/>
+        <setting label="30023" type="text" id="tvpgo_filename" default="tvp_go.m3u"/>
+        <setting label="30024" type="folder" id="tvpgo_path_m3u" source="auto" option="writeable"/>
+        <setting type="action"
+                 action="RunPlugin(plugin://plugin.video.tvpgo?build_m3u)"
+                 label="30025"
+                 option="close"/>
+    </category>
+</settings>

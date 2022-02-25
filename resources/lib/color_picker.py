@@ -1,311 +1,79 @@
-import xbmcgui
-import xbmcaddon
-import xbmcplugin
-import sys
+#!/usr/bin/env python
+from __future__ import division
 
-colors = ['ff000000',
-          'ff00acc1',
-          'ff00b0ff',
-          'ff00b8d4',
-          'ff00bcd4',
-          'ff00bfa5',
-          'ff00c853',
-          'ff0d47a1',
-          'ff00e5ff',
-          'ff00e676',
-          'ff1a237e',
-          'ff1b5e20',
-          'ff1de9b6',
-          'ff1e88e5',
-          'ff2e7d32',
-          'ff03a9f4',
-          'ff3ba828',
-          'ff3d5afe',
-          'ff3e2723',
-          'ff3f51b5',
-          'ff4a148c',
-          'ff4caf50',
-          'ff004d40',
-          'ff4db6ac',
-          'ff4dd0e1',
-          'ff4e342e',
-          'ff4fc3f7',
-          'ff5c6bc0',
-          'ff5d4037',
-          'ff5e35b1',
-          'ff5e35e5',
-          'ff6a1b9a',
-          'ff6d4c41',
-          'ff7b1fa2',
-          'ff7ba828',
-          'ff7c4dff',
-          'ff7cb342',
-          'ff7e57c2',
-          'ff8bc34a',
-          'ff8c9eff',
-          'ff8d6e63',
-          'ff8e24aa',
-          'ff9c27b0',
-          'ff9ccc65',
-          'ff9e9d24',
-          'ff9e9e9e',
-          'ff9fa8da',
-          'ff18ffff',
-          'ff26a69a',
-          'ff26c6da',
-          'ff28a855',
-          'ff28a895',
-          'ff29b6f6',
-          'ff35bce5',
-          'ff35e5b6',
-          'ff35e55e',
-          'ff039be5',
-          'ff40c4ff',
-          'ff42a5f5',
-          'ff43a047',
-          'ff64b5f6',
-          'ff64dd17',
-          'ff64e535',
-          'ff64ffda',
-          'ff66bb6a',
-          'ff69f0ae',
-          'ff76ff03',
-          'ff80cbc4',
-          'ff80d8ff',
-          'ff80deea',
-          'ff81c784',
-          'ff81d4fa',
-          'ff82b1ff',
-          'ff84ffff',
-          'ff90a4ae',
-          'ff90caf9',
-          'ff0091ea',
-          'ff0097a7',
-          'ff0277bd',
-          'ff283ba8',
-          'ff287ba8',
-          'ff0288d1',
-          'ff303f9f',
-          'ff304ffe',
-          'ff311b92',
-          'ff0385b5',
-          'ff388e3c',
-          'ff448aff',
-          'ff455a64',
-          'ff512da8',
-          'ff536dfe',
-          'ff546e7a',
-          'ff558b2f',
-          'ff607d8b',
-          'ff651fff',
-          'ff673ab7',
-          'ff689f38',
-          'ff00695c',
-          'ff00796b',
-          'ff00838f',
-          'ff880e4f',
-          'ff00897b',
-          'ff1565c0',
-          'ff01579b',
-          'ff1976d2',
-          'ff2196f3',
-          'ff2962ff',
-          'ff2979ff',
-          'ff3564e5',
-          'ff3949ab',
-          'ff4527a0',
-          'ff5528a8',
-          'ff006064',
-          'ff6200ea',
-          'ff7986cb',
-          'ff9528a8',
-          'ff9575cd',
-          'ff009688',
-          'ff33691e',
-          'ff37474f',
-          'ff78909c',
-          'ff181818',
-          'ff212121',
-          'ff263238',
-          'ff283593',
-          'ff424242',
-          'ff616161',
-          'ff757575',
-          'ff795548',
-          'ff827717',
-          'ffa5d6a7',
-          'ffa7ffeb',
-          'ffa1887f',
-          'ffa8283b',
-          'ffa8287b',
-          'ffa85528',
-          'ffa89528',
-          'ffaa00ff',
-          'ffab47bc',
-          'ffad1457',
-          'ffaed581',
-          'ffaeea00',
-          'ffafb42b',
-          'ffb0bec5',
-          'ffb2dfdb',
-          'ffb2ebf2',
-          'ffb2ff59',
-          'ffb3e5fc',
-          'ffb9f6ca',
-          'ffb39ddb',
-          'ffb71c1c',
-          'ffb388ff',
-          'ffb635e5',
-          'ffba68c8',
-          'ffbbdefb',
-          'ffbcaaa4',
-          'ffbce535',
-          'ffbdbdbd',
-          'ffbf360c',
-          'ffc0ca33',
-          'ffc5cae9',
-          'ffc5e1a5',
-          'ffc6ff00',
-          'ffc8e6c9',
-          'ffc2185b',
-          'ffc51162',
-          'ffc62828',
-          'ffccff90',
-          'ffcddc39',
-          'ffce93d8',
-          'ffcfd8dc',
-          'ffd1c4e9',
-          'ffd4e157',
-          'ffd7ccc8',
-          'ffd32f2f',
-          'ffd81b60',
-          'ffd500f9',
-          'ffd50000',
-          'ffd84315',
-          'ffdce775',
-          'ffdcedc8',
-          'ffdd2c00',
-          'ffe0e0e0',
-          'ffe0f2f1',
-          'ffe0f7fa',
-          'ffe1bee7',
-          'ffe1f5fe',
-          'ffe3f2fd',
-          'ffe5b535',
-          'ffe6ee9c',
-          'ffe8eaf6',
-          'ffe8f5e9',
-          'ffe040fb',
-          'ffe55e35',
-          'ffe64a19',
-          'ffe91e63',
-          'ffe535bc',
-          'ffe53564',
-          'ffe53935',
-          'ffe57373',
-          'ffe65100',
-          'ffea80fc',
-          'ffec407a',
-          'ffeceff1',
-          'ffede7f6',
-          'ffeeeeee',
-          'ffeeff41',
-          'ffef6c00',
-          'ffef9a9a',
-          'ffef5350',
-          'ffefebe9',
-          'fff0f4c3',
-          'fff1f8e9',
-          'fff3e5f5',
-          'fff4ff81',
-          'fff5f5f5',
-          'fff8bbd0',
-          'fff9a825',
-          'fff9fbe7',
-          'fff48fb1',
-          'fff57c00',
-          'fff57f17',
-          'fff4511e',
-          'fff06292',
-          'fff44336',
-          'fff50057',
-          'fffafafa',
-          'fffb8c00',
-          'fffbc02d',
-          'fffbe9e7',
-          'fffce4ec',
-          'fffdd835',
-          'ffff3d00',
-          'ffff6d00',
-          'ffff6e40',
-          'ffff6f00',
-          'ffff8a65',
-          'ffff8a80',
-          'ffff8f00',
-          'ffff9e80',
-          'ffff80ab',
-          'ffff1744',
-          'ffff4081',
-          'ffff5252',
-          'ffff5722',
-          'ffff7043',
-          'ffff9100',
-          'ffff9800',
-          'ffffa000',
-          'ffffa726',
-          'ffffab00',
-          'ffffab40',
-          'ffffab91',
-          'ffffb74d',
-          'ffffb300',
-          'ffffc107',
-          'ffffc400',
-          'ffffca28',
-          'ffffcc80',
-          'ffffccbc',
-          'ffffcdd2',
-          'ffffd54f',
-          'ffffd180',
-          'ffffd600',
-          'ffffd740',
-          'ffffe0b2',
-          'ffffe57f',
-          'ffffe082',
-          'ffffea00',
-          'ffffeb3b',
-          'ffffebee',
-          'ffffecb3',
-          'ffffee58',
-          'fffff3e0',
-          'fffff8e1',
-          'fffff9c4',
-          'fffff59d',
-          'fffff176',
-          'fffffde7',
-          'ffffff00',
-          'ffffff8d',
-          'ffffffff']
+import xbmc, xbmcgui, xbmcaddon, xbmcvfs
+import os
+import math
 
+import colorsys
+import textwrap
 
-class TilesGen:
-    # TODO: Set dynamic content using libka
+from xml.etree import ElementTree
+version = int(xbmc.__version__.replace('.', ''))
+
+addon = xbmcaddon.Addon()
+
+addon_path = xbmcvfs.translatePath(addon.getAddonInfo('path'))
+
+def get_hsv(value):
+    hexrgb, name = value
+
+    hexrgb = hexrgb.lstrip("#")
+    lh = len(hexrgb)
+    # Allow short and long hex codes
+    r, g, b = tuple(int(i, 16) for i in textwrap.wrap(hexrgb, 3))
+    return colorsys.rgb_to_hsv(r, g, b), name
+
+def step (value, repetitions=1):
+    hexrgb, name = value
+    r,g,b = tuple(int(i, 16) for i in textwrap.wrap(hexrgb, 3))
+    lum = math.sqrt( .241 * r + .691 * g + .068 * b )
+    h, s, v = colorsys.rgb_to_hsv(r,g,b)
+    h2 = int(h * repetitions)
+    lum2 = int(lum * repetitions)
+    v2 = int(v * repetitions)
+    if h2 % 2 == 1:
+        v2 = repetitions - v2
+        lum = repetitions - lum
+    return (h2, lum, v2), name
+
+class ColorPicker(object):
     def __init__(self):
-        addon_handle = int(sys.argv[1])
+        dialog = xbmcgui.Dialog()
 
-        for color in colors:
-            li = xbmcgui.ListItem(color)
-            li.setLabel(color)
-            li.setArt({'icon': f'colors/{color}.png'})
-            xbmcplugin.addDirectoryItem(handle=addon_handle, url=None, listitem=li)
+        listitems = []
 
-        xbmcplugin.endOfDirectory(addon_handle)
+        with open(os.path.join(addon.getAddonInfo('path'), 'resources', 'lib', 'colors.xml'), 'rb') as f:
+            tree = ElementTree.parse(f)
+        
+        root = tree.getroot()
 
+        colours = [i.text for i in root]
+        names = [i.attrib['name'] for i in root]
+        
+        color_dict = dict(zip(colours, names))
+        sort_orders = sorted(color_dict.items(), key=get_hsv)
 
-class ColorPicker:
-    # TODO: Save settings using libka
-    def __init__(self):
-        self.dialog = xbmcgui.WindowXMLDialog('Custom_ColorPicker_1199.xml', xbmcaddon.Addon().getAddonInfo('path'),
-                                              'default', '1080i')
-        self.dialog.doModal()
-        self.choosen_colour = self.dialog.getProperty('choosen_colour')
-        xbmcaddon.Addon().setSetting(id='tvpgo_color', value=self.choosen_colour)
+        if version > 300:
+            for name, color in sort_orders:
+                listitem = xbmcgui.ListItem(color, name)
+                listitems.append(listitem)
+
+            value = dialog.colorpicker("Select color", "ffffffff", colorlist=listitems)
+        else:
+            for name, color in sort_orders:
+                listitem = xbmcgui.ListItem(name, color)
+
+                img =  os.path.join(addon_path, 'resources', 'lib', 'colors', '{0}.jpg'.format(color))
+
+                listitem.setArt({'thumb': img})
+                listitems.append(listitem)
+
+            res = value = dialog.select("Select color", listitems, useDetails=True)
+            if res >= 0:
+                value = colors[res]
+            else:
+                return
+
+        if value:
+            addon.setSetting('tvpgo_color', value)

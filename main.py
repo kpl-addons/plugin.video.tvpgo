@@ -48,7 +48,7 @@ import json
 from datetime import datetime, timedelta
 from collections import namedtuple
 
-from resources.lib.color_picker import ColorPicker, TilesGen
+from resources.lib import color_picker
 from libka import SimplePlugin, call, L, PathArg
 from libka.logs import log
 from libka.format import safefmt
@@ -91,12 +91,6 @@ EpgInfo.dt_end = property(lambda self: datetime.fromtimestamp(self.end / 1000))
 EpgInfo.time_range = property(lambda self: f'{self.dt_start:%H:%M} - {self.dt_end:%H:%M}')
 
 
-colors = ['', 'skyblue', 'dodgerblue', 'lightgreen', 'indianred', 'thistle', 'goldenrod', 'sandybrown', 'button_focus']
-
-# XXX - not used
-# quantity = addon.getSetting('tvpgo_quantity')
-
-
 class SourceException(Exception):
     pass
 
@@ -109,11 +103,17 @@ class Main(SimplePlugin):
 
     def __init__(self):
         super().__init__()
-        self.color: str = self.settings.get_string('tvpgo_color')
+        self.color = self.settings.tvpgo_color
+
         if self.settings.tvpgo_format == 0:
-            self.title_format: str = '{channel} {time} - {title}'
+            self.title_format = '{channel} {time} - {title}'
         else:
-            self.title_format: str = '{channel} {title} - {time}'
+            self.title_format = '{channel} {title} - {time}'
+
+        if self.settings.tvpgo_highlight:
+            self.bold = True
+        else:
+            self.bold = False
 
         self.thumb = self.media.image('landscape.png')
         self.poster = self.media.image('poster.png')
@@ -123,16 +123,25 @@ class Main(SimplePlugin):
         now = datetime.now()
         self.tz_offset = now - datetime.utcfromtimestamp(now.timestamp())
 
+    def bold_text(self, txt):
+        if not self.bold:
+            txt = txt.replace('[B]', '').replace('[/B]', '')
+        return txt
+
     def home(self):
         # default art
+
+        live = self.bold_text(self.format_title('Kanały na żywo', style=[f'COLOR {self.color}', 'B']))
+        replay = self.bold_text(self.format_title('Replay', style=[f'COLOR {self.color}', 'B']))
+
         art = {'thumb': self.thumb, 'poster': self.poster, 'banner': self.banner,
                'icon': self.icon, 'fanart': self.fanart}
         with self.directory() as kdir:
-            kdir.menu('Kanały na żywo', self.live,
-                      info={'title': 'Kanały na żywo', 'sorttitle': 'Kanały na żywo', 'plot': ''},
+            kdir.menu(live, self.live,
+                      info={'title': live, 'sorttitle': 'Kanały na żywo', 'plot': ''},
                       art=art)
-            kdir.menu('Replay', self.replay,
-                      info={'title': 'Replay', 'sorttitle': 'Replay', 'plot': ''},
+            kdir.menu(replay, self.replay,
+                      info={'title': replay, 'sorttitle': 'Replay', 'plot': ''},
                       art=art)
 
     # def get_requests(self, url, headers=None, data=None, txt=False):
@@ -239,7 +248,8 @@ class Main(SimplePlugin):
         with self.directory() as kdir:
             for ch in channels:
                 log.info('KOLOREK ' + self.color)
-                channel = self.format_title(ch.name, style=[f'COLOR {self.color}', 'B'])
+                
+                channel = self.bold_text(self.format_title(ch.name, style=[f'COLOR {self.color}', 'B']))
                 epg = epg_data.get(ch.code)
                 if epg:
                     if epg.start and epg.end:
@@ -247,7 +257,7 @@ class Main(SimplePlugin):
                         dt_end = datetime.fromtimestamp(int(epg.end) / 1000)
 
                         if epg.title:
-                            time_delta = f'[COLOR 80FFFFFF][B][{dt_start:%H:%M} - {dt_end:%H:%M}][/B][/COLOR]'
+                            time_delta = self.bold_text(f'[COLOR 80FFFFFF][B][{dt_start:%H:%M} - {dt_end:%H:%M}][/B][/COLOR]')
                             title = self.title_format.format(channel=channel, title=epg.title, time=time_delta)
                         else:
                             title = channel
@@ -281,7 +291,7 @@ class Main(SimplePlugin):
         with self.directory() as kdir:
             now_msec = datetime.now().timestamp() * 1000
             for epg in self.get_epgs(all_day=True, tv_code=code):
-                title = f'[COLOR 80FFFFFF][B][{epg.time_range}][/B][/COLOR] – {epg.title}'
+                title = self.bold_text(f'[COLOR 80FFFFFF][B][{epg.time_range}][/B][/COLOR] – {epg.title}')
                 if epg.start > now_msec:
                     kdir.item(title, self.nop)
                 else:
@@ -342,7 +352,8 @@ class Main(SimplePlugin):
     def replay(self):
         with self.directory() as kdir:
             for ch in self.replay_channels_array_gen():
-                set_info = {'title': ch.name, 'sorttitle': ch.name, 'plot': ''}
+                channel = self.bold_text(self.format_title(ch.name, style=[f'COLOR {self.color}', 'B']))
+                set_info = {'title': channel, 'sorttitle': ch.name, 'plot': ''}
                 thumb = ch.img or self.thumb
                 poster = ch.img or self.poster
                 kdir.menu(ch[1], call(self.replay_calendar_gen, ch_code=ch.code, ch_image=ch.img),
@@ -355,8 +366,9 @@ class Main(SimplePlugin):
         ar_date = [f'{now - timedelta(days=n):%Y-%m-%d}' for n in range(7)]
         with self.directory() as kdir:
             for date in ar_date:
-                kdir.menu(date, call(self.replay_programs_gen, ch_code=ch_code, ch_img=ch_image, date=date),
-                          info={'title': date, 'sorttitle': date, 'plot': ''},
+                formatted_date = self.bold_text(self.format_title(date, style=['B']))
+                kdir.menu(formatted_date, call(self.replay_programs_gen, ch_code=ch_code, ch_img=ch_image, date=date),
+                          info={'title': formatted_date, 'sorttitle': date, 'plot': ''},
                           art={'thumb': ch_image, 'poster': ch_image, 'banner': self.banner, 'icon': self.icon,
                                'fanart': self.fanart})
 
@@ -382,8 +394,8 @@ class Main(SimplePlugin):
 
                 p_title = p['title']
                 p_desc = p['description']
-                p_time_delta = '[COLOR 80FFFFFF][B][{0} - {1}][/B][/COLOR]'.format(hm(p['date_start']),
-                                                                                   hm(p['date_end']))
+                p_time_delta = self.bold_text('[COLOR 80FFFFFF][B][{0} - {1}][/B][/COLOR]'.format(hm(p['date_start']),
+                                                                                   hm(p['date_end'])))
 
                 p_logo = ''
                 program = p.get('program')
@@ -401,7 +413,7 @@ class Main(SimplePlugin):
     def replay_programs_gen(self, ch_code, ch_img, date):
         with self.directory() as kdir:
             for p in self.replay_programs_array_gen(ch_code, date):
-                channel = f'[COLOR {colors[self.color]}][B] {p.name} [/B][/COLOR]'
+                channel = self.bold_text(self.format_title(p.name, style=[f'COLOR {self.color}', 'B']))
                 title = self.title_format.format(channel=channel, title=p.title, time=p.time_delta)
                 art = {'thumb': p.img or ch_img, 'poster': p.img or ch_img, 'banner': self.banner,
                        'icon': self.icon, 'fanart': self.fanart}
@@ -501,7 +513,7 @@ class Main(SimplePlugin):
         path_m3u = self.settings.tvpgo_path_m3u
         file_name = self.settings.tvpgo_filename
 
-        if not file_name or not path_m3u:
+        if file_name == '' or path_m3u == '':
             xbmcgui.Dialog().notification('TVP GO', L(30022, 'Set filename and destination directory'),
                                           xbmcgui.NOTIFICATION_ERROR)
             return
@@ -531,9 +543,9 @@ class Main(SimplePlugin):
 if __name__ == '__main__':
     import sys
     log.info(f'============= {sys.argv}')
-    if sys.argv[1] == 'color_picker':
-        ColorPicker()
-    elif sys.argv[2] == '?colorpicker=tiles':
-        TilesGen()
+    if sys.argv[2] == '?color_picker':
+        color_picker.ColorPicker()
+    elif sys.argv[2] == '?build_m3u':
+        Main().build_m3u()
     else:
         Main().run()

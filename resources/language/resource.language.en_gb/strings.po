@@ -73,31 +73,31 @@ msgid "Select channel name color scheme"
 msgstr ""
 
 msgctxt "#30014"
-msgid "Lightblue"
+msgid "[COLOR skyblue]Lightblue[/COLOR]"
 msgstr ""
 
 msgctxt "#30015"
-msgid "Darkblue"
+msgid "[COLOR dodgerblue]Darkblue[/COLOR]"
 msgstr ""
 
 msgctxt "#30016"
-msgid "Lightgreen"
+msgid "[COLOR lightgreen]Lightgreen[/COLOR]"
 msgstr ""
 
 msgctxt "#30017"
-msgid "Red"
+msgid "[COLOR indianred]Red[/COLOR]"
 msgstr ""
 
 msgctxt "#30018"
-msgid "Violet"
+msgid "[COLOR thistle]Violet[/COLOR]"
 msgstr ""
 
 msgctxt "#30019"
-msgid "Gold"
+msgid "[COLOR goldenrod]Gold[/COLOR]"
 msgstr ""
 
 msgctxt "#30020"
-msgid "Brown"
+msgid "[COLOR sandybrown]Brown[/COLOR]"
 msgstr ""
 
 msgctxt "#30021"
@@ -169,5 +169,9 @@ msgid "Videos"
 msgstr ""
 
 msgctxt "#30038"
-msgid "Adaptive"
+msgid "[COLOR button_focus]Adaptive[/COLOR]"
+msgstr ""
+
+msgctxt "#30039"
+msgid "Highlight text"
 msgstr ""
