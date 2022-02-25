@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <window id="1199">
     <defaultcontrol>3110</defaultcontrol>
-    <onunload>ClearProperty(colourpicker)</onunload>
+    <onunload>SetProperty(choosen_colour, $INFO[Skin.String(choosen_colour.name)])</onunload>
     <controls>
         <control type="group">
-            <width>980</width>
+            <width>1020</width>
             <height>800</height>
             <centertop>50%</centertop>
             <centerleft>50%</centerleft>
@@ -19,7 +19,7 @@
                 <texture colordiffuse="C2FFFFFF">colors/ff000000.png</texture>
             </control>
             <control type="group">
-                <width>980</width>
+                <width>1020</width>
                 <height>800</height>
                 <control type="image">
                     <texture colordiffuse="FF1A2123" border="20">common/box.png</texture>
@@ -50,8 +50,8 @@
                         <orientation>horizontal</orientation>
                         <preloaditems>2</preloaditems>
                         <onclick>Skin.SetString(choosen_colour.name,$INFO[ListItem.Label])</onclick>
+                        <onback>SetProperty(choosen_colour, $INFO[ListItem.Label])</onback>
                         <onclick>SetProperty(choosen_colour, $INFO[ListItem.Label])</onclick>
-                        <onclick>SetFocus(3010)</onclick>
                         <itemlayout width="80" height="80">
                             <control type="image">
                                 <left>1</left>
@@ -64,10 +64,6 @@
                                 <left>1</left>
                                 <bottom>1</bottom>
                                 <texture>$INFO[ListItem.Icon]</texture>
-                            </control>
-                            <control type="button">
-                                <visible>false</visible>
-                                <onfocus>Skin.SetString(choosen_colour.name, $INFO[ListItem.Label])</onfocus>
                             </control>
                         </focusedlayout>
                         <content>plugin://plugin.video.tvpgo?colorpicker=tiles</content>
@@ -131,12 +127,14 @@
                             <texturenofocus/>
                             <texturefocus/>
                             <alttexturefocus/>
-                            <onclick>Action(Close)</onclick>
+                            <onclick>Skin.SetString(choosen_colour.name,$INFO[Skin.String(choosen_colour.name)])</onclick>
+                            <onback>SetProperty(choosen_colour, $INFO[Skin.String(choosen_colour.name)])</onback>
+                            <onclick>SetProperty(choosen_colour, $INFO[Skin.String(choosen_colour.name)])</onclick>
+                            <onclick>Action(Back)</onclick>
                         </control>
-                        <!-- EDIT -->
-                        <control type="button" id="3010">
-                            <textoffsetx>10</textoffsetx>
-                            <label>Value: $INFO[Skin.String(choosen_colour.name)]</label>
+                        <!-- RESET -->
+                        <control type="button" id="3013">
+                            <label>$LOCALIZE[409]</label>
                             <align>center</align>
                             <texturefocus colordiffuse="ff01579b" border="5">common/box.png</texturefocus>
                             <alttexturefocus colordiffuse="ff01579b" border="5">common/box.png</alttexturefocus>
@@ -149,7 +147,24 @@
                             <texturenofocus/>
                             <texturefocus/>
                             <alttexturefocus/>
-                            <onclick condition="true">Skin.SetString(choosen_colour.name)</onclick>
+                            <onclick>ClearProperty(choosen_colour)</onclick>
+                            <onclick>Action(Back)</onclick>
+                        </control>
+                        <!-- EDIT -->
+                        <control type="button" id="3010">
+                            <label>$INFO[Skin.String(choosen_colour.name),Value: ,]</label>
+                            <align>center</align>
+                            <texturefocus colordiffuse="ff01579b" border="5">common/box.png</texturefocus>
+                            <alttexturefocus colordiffuse="ff01579b" border="5">common/box.png</alttexturefocus>
+                            <texturenofocus colordiffuse="4D181818" border="5">common/box.png</texturenofocus>
+                            <top>0</top>
+                            <height>75</height>
+                            <width>250</width>
+                            <aligny>center</aligny>
+                            <texturenofocus/>
+                            <texturefocus/>
+                            <alttexturefocus/>
+                            <onclick>Skin.SetString(choosen_colour.name)</onclick>
                         </control>
                     </control>
                     <!-- Colours Preview -->
@@ -171,7 +186,7 @@
                                     <textcolor>00ffffff</textcolor>
                                     <onleft>3023</onleft>
                                     <onright>3022</onright>
-                                    <onup>3012</onup>
+                                    <onup>3010</onup>
                                     <ondown>3015</ondown>
                                     <onclick>SetProperty(colourpicker,Highlight)</onclick>
                                     <onclick>SetFocus(3110)</onclick>
