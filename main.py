@@ -48,7 +48,7 @@ import json
 from datetime import datetime, timedelta
 from collections import namedtuple
 
-from resources.lib.color_picker import ColorPicker
+from resources.lib.color_picker import ColorPicker, TilesGen
 from libka import SimplePlugin, call, L, PathArg
 from libka.logs import log
 from libka.format import safefmt
@@ -533,5 +533,7 @@ if __name__ == '__main__':
     log.info(f'============= {sys.argv}')
     if sys.argv[1] == 'color_picker':
         ColorPicker()
+    elif sys.argv[2] == '?colorpicker=tiles':
+        TilesGen()
     else:
         Main().run()
