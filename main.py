@@ -309,10 +309,11 @@ class Main(SimplePlugin):
         except Exception:
             raise RepeatException() from None
 
-        url_stream, protocol, mime_type = self.get_stream_of_type(streams)
+        url_stream = self.get_stream_of_type(streams)['url']
+        protocol_type = self.get_stream_of_type(streams)['protocol']
+        stream_mime_type = self.get_stream_of_type(streams)['mime_type']
         url_stream = self.apply_timeshift(url_stream)
-        log.info('URL_STREAM=== ' + url_stream)
-        self.play(url_stream, protocol, mime_type)
+        self.play(url_stream, protocol_type, stream_mime_type)
 
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def replay_channels_array_gen(self):
@@ -440,8 +441,10 @@ class Main(SimplePlugin):
 
     def play_programme(self, code, prog_id):
         streams = self.get_replay_program_streams(code, prog_id)
-        url_stream, protocol, mime_type = self.get_stream_of_type(streams)
-        self.play(url_stream=url_stream, drm_protocol=protocol, drm_mime_type=mime_type)
+        url_stream = self.get_stream_of_type(streams)['url']
+        protocol_type = self.get_stream_of_type(streams)['protocol']
+        stream_mime_type = self.get_stream_of_type(streams)['mime_type']
+        self.play(url_stream=url_stream, drm_protocol=protocol_type, drm_mime_type=stream_mime_type)
 
     def apply_timeshift(self, url_stream, keep_begin_time=True):
         if url_stream is not None:
@@ -477,24 +480,47 @@ class Main(SimplePlugin):
 
     @staticmethod
     def get_stream_of_type(streams):
-        for s in streams:
-            if s['mimeType'] == 'application/dash+xml' and not ('mobile' in s['url']):
-                url_stream = s['url']
-                protocol_type = 'mpd'
-                stream_mime_type = 'application/xml+dash'
-                return url_stream, protocol_type, stream_mime_type
+        # for s in sorted_data:
+        #     if s['mimeType'] == 'application/dash+xml' and not ('mobile' in s['url']):
+        #         url_stream = s['url']
+        #         protocol_type = 'mpd'
+        #         stream_mime_type = 'application/xml+dash'
+        #         return url_stream, protocol_type, stream_mime_type
+        #
+        #     elif s['mimeType'] == 'application/x-mpegurl' and not ('mobile' in s['url']):
+        #         url_stream = s['url']
+        #         protocol_type = 'hls'
+        #         stream_mime_type = 'application/x-mpegurl'
+        #         return url_stream, protocol_type, stream_mime_type
+        #
+        #     elif s['mimeType'] == 'video/mp2t' and not ('mobile' in s['url']):
+        #         url_stream = s['url']
+        #         protocol_type = 'hls'
+        #         stream_mime_type = 'video/mp2t'
+        #         return url_stream, protocol_type, stream_mime_type
+        
+        sorted_data = sorted(streams, key=lambda d: list(str(d['totalBitrate'])), reverse=True)
+        url_stream = sorted_data[0]['url']
+        if sorted_data[0]['mimeType'] == 'application/dash+xml':
+            return {
+                'url': url_stream,
+                'mime_type': sorted_data[0]['mimeType'],
+                'protocol': 'mpd'
+            }
 
-            elif s['mimeType'] == 'application/x-mpegurl' and not ('mobile' in s['url']):
-                url_stream = s['url']
-                protocol_type = 'hls'
-                stream_mime_type = 'application/x-mpegurl'
-                return url_stream, protocol_type, stream_mime_type
+        elif sorted_data[0]['mimeType'] == 'application/x-mpegurl':
+            return {
+                'url': url_stream,
+                'mime_type': sorted_data[0]['mimeType'],
+                'protocol': 'hls'
+            }
 
-            elif s['mimeType'] == 'video/mp2t' and not ('mobile' in s['url']):
-                url_stream = s['url']
-                protocol_type = 'hls'
-                stream_mime_type = 'video/mp2t'
-                return url_stream, protocol_type, stream_mime_type
+        elif sorted_data[0]['mimeType'] == 'video/mp2t':
+            return {
+                'url': url_stream,
+                'mime_type': sorted_data[0]['mimeType'],
+                'protocol': 'hls'
+            }
 
     def build_m3u(self):
         path_m3u = self.settings.tvpgo_path_m3u
