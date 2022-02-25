@@ -238,7 +238,6 @@ class Main(SimplePlugin):
 
         with self.directory() as kdir:
             for ch in channels:
-                log.info('KOLOREK ' + self.color)
                 channel = self.format_title(ch.name, style=[f'COLOR {self.color}', 'B'])
                 epg = epg_data.get(ch.code)
                 if epg:
@@ -401,7 +400,7 @@ class Main(SimplePlugin):
     def replay_programs_gen(self, ch_code, ch_img, date):
         with self.directory() as kdir:
             for p in self.replay_programs_array_gen(ch_code, date):
-                channel = f'[COLOR {colors[self.color]}][B] {p.name} [/B][/COLOR]'
+                channel = self.format_title(p.name, style=[f'COLOR {self.color}', 'B'])
                 title = self.title_format.format(channel=channel, title=p.title, time=p.time_delta)
                 art = {'thumb': p.img or ch_img, 'poster': p.img or ch_img, 'banner': self.banner,
                        'icon': self.icon, 'fanart': self.fanart}
