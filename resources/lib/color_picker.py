@@ -3,12 +3,7 @@ import xbmcaddon
 import xbmcplugin
 import sys
 
-colors = ['00ffffff',
-          '01000000',
-          '11000000',
-          '77000000',
-          '77010101',
-          'ff000000',
+colors = ['ff000000',
           'ff00acc1',
           'ff00b0ff',
           'ff00b8d4',

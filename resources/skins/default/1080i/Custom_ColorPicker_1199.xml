@@ -148,25 +148,17 @@
                                 </control>
                                 <control type="group">
                                     <control type="image">
-                                        <texture colordiffuse="Skin.String(choosen_colour.name)" border="20">
-                                            common/box.png
-                                        </texture>
+                                        <texture colordiffuse="Skin.String(choosen_colour.name)" border="5">common/box.png</texture>
                                         <visible>!Control.HasFocus(3110) | false</visible>
                                     </control>
                                     <control type="image">
-                                        <texture colordiffuse="$INFO[Container(3110).ListItem.Label]" border="20">
-                                            common/box.png
-                                        </texture>
+                                        <texture colordiffuse="$INFO[Skin.String(choosen_colour.name)]" border="5">common/box.png</texture>
                                         <visible>Control.HasFocus(3110) + true</visible>
                                     </control>
                                     <control type="image">
                                         <bordersize>20</bordersize>
-                                        <bordertexture border="32" colordiffuse="black">
-                                            common/shadow-20.png
-                                        </bordertexture>
-                                        <texture border="20" colordiffuse="Skin.String(choosen_colour.name)">
-                                            common/selectbox.png
-                                        </texture>
+                                        <bordertexture border="32" colordiffuse="black">common/shadow-20.png</bordertexture>
+                                        <texture border="20" colordiffuse="Skin.String(choosen_colour.name)">common/selectbox.png</texture>
                                         <visible>Control.HasFocus(3021)</visible>
                                     </control>
                                 </control>
