@@ -48,10 +48,10 @@ class ColorPicker(object):
         
         root = tree.getroot()
 
-        colours = [i.text for i in root]
+        colors = [i.text for i in root]
         names = [i.attrib['name'] for i in root]
         
-        color_dict = dict(zip(colours, names))
+        color_dict = dict(zip(colors, names))
         sort_orders = sorted(color_dict.items(), key=get_hsv)
 
         if version > 300:

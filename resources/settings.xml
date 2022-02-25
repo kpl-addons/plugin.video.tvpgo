@@ -34,17 +34,25 @@
 		</category>
 		<category id="tvpgo_view_settings" label="30007" help="">
 			<group id="1">
-			<setting id="tvpgo_color" type="action" label="30013" help="">
-				<level>0</level>
-				<default>ffffffff</default>
-				<data>RunPlugin(plugin://plugin.video.tvpgo?color_picker)</data>
-				<constraints>
-					<allowempty>true</allowempty>
-				</constraints>
-				<control type="button" format="action">
-					<close>false</close>
-				</control>
-			</setting>
+				<setting type="string" id="tvpgo_color" label="30013">
+					<default>ffffffff</default>
+					<level>0</level>
+					<visible>false</visible>
+					<control type="edit" format="string">
+						<heading>30013</heading>
+					</control>
+				</setting>
+				<setting id="tvpgo_color_action" type="action" label="30013" help="">
+					<level>0</level>
+					<default>ffffffff</default>
+					<data>RunPlugin(plugin://plugin.video.tvpgo?color_picker)</data>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="button" format="action">
+						<close>false</close>
+					</control>
+				</setting>
 				<setting id="tvpgo_highlight" label="30039" type="boolean">
 					<level>0</level>
 					<default>false</default>
