@@ -11,7 +11,6 @@
 <extension point="xbmc.python.pluginsource" library="main.py">
 	<provides>video</provides>
 </extension>
-<extension point="xbmc.service" library="settings.py"/>
 <extension point="xbmc.addon.metadata">
 	<summary lang="en">[COLOR gold]Kanały TVP na żywo bezpłatnie w KODI[/COLOR]</summary>
 	<description lang="pl">[B]TVP GO to nowe możliwości:[/B][CR]• Kanały na żywo - dostęp do kanałów Telewizji Polskiej w dowolnym miejscu i czasie[CR]• Od początku – możliwość uruchomienia trwającego programu od początku[CR]• 7 dniowa historia – dostęp do audycji, które były emitowane w ciągu ostatnich 7 dni[CR]• Zatrzymaj/Wznów – zatrzymaj program i wznów jego oglądanie w wygodnym dla Ciebie czasie</description>
