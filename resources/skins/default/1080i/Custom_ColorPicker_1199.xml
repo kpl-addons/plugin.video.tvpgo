@@ -57,10 +57,6 @@
                     <right>320</right>
                     <!-- Colors Panel -->
                     <control type="panel" id="3110">
-                        <onup>3110</onup>
-                        <ondown>3110</ondown>
-                        <onback>3012</onback>
-                        <onleft>8999</onleft>
                         <onright>8999</onright>
                         <scrolltime tween="sine" easing="out">50</scrolltime>
                         <orientation>horizontal</orientation>
@@ -71,34 +67,52 @@
                         <onclick>SetFocus(3010)</onclick>
                         <itemlayout width="80" height="80">
                             <control type="image">
+                                <left>1</left>
+                                <bottom>1</bottom>
                                 <texture>$INFO[ListItem.Icon]</texture>
-                            </control>
-                            <control type="image">
-                                <top>100</top>
-                                <height>80</height>
-                                <texture>$INFO[ListItem.Icon2]</texture>
                             </control>
                         </itemlayout>
                         <focusedlayout width="80" height="80">
                             <control type="image">
-                                <label>ffffffff</label>
+                                <left>1</left>
+                                <bottom>1</bottom>
                                 <texture>$INFO[ListItem.Icon]</texture>
                             </control>
                             <control type="button">
                                 <visible>false</visible>
                                 <onfocus>Skin.SetString(choosen_colour.name, $INFO[ListItem.Label])</onfocus>
                             </control>
-                            <control type="image">
-                                <top>-25</top>
-                                <left>-25</left>
-                                <width>130</width>
-                                <height>130</height>
-                                <bordersize>20</bordersize>
-                                <bordertexture border="32" colordiffuse="black">common/shadow-20.png</bordertexture>
-                                <texture border="20" colordiffuse="ffffffff">common/selectbox.png</texture>
-                            </control>
                         </focusedlayout>
                         <content>plugin://plugin.video.tvpgo?colorpicker=tiles</content>
+                    </control>
+                </control>
+                <!-- Selection Box -->
+                <control type="group">
+                    <left>-40</left>
+                    <top>-40</top>
+                    <width>160</width>
+                    <height>160</height>
+                    <visible>Control.Hasfocus(3110)</visible>
+                    <animation effect="slide" end="0,80" condition="Container(3110).Row(1)">Conditional</animation>
+                    <animation effect="slide" end="0,160" condition="Container(3110).Row(2)">Conditional</animation>
+                    <animation effect="slide" end="0,240" condition="Container(3110).Row(3)">Conditional</animation>
+                    <animation effect="slide" end="0,320" condition="Container(3110).Row(4)">Conditional</animation>
+                    <animation effect="slide" end="0,400" condition="Container(3110).Row(5)">Conditional</animation>
+                    <animation effect="slide" end="0,480" condition="Container(3110).Row(6)">Conditional</animation>
+                    <animation effect="slide" end="80" condition="Container(3110).Column(1)">Conditional</animation>
+                    <animation effect="slide" end="160" condition="Container(3110).Column(2)">Conditional</animation>
+                    <animation effect="slide" end="240" condition="Container(3110).Column(3)">Conditional</animation>
+                    <animation effect="slide" end="320" condition="Container(3110).Column(4)">Conditional</animation>
+                    <animation effect="slide" end="400" condition="Container(3110).Column(5)">Conditional</animation>
+                    <animation effect="slide" end="480" condition="Container(3110).Column(6)">Conditional</animation>
+                    <control type="image">
+                        <bordersize>20</bordersize>
+                        <texture colordiffuse="$INFO[Container(3110).ListItem.Label]" border="10">common/box.png</texture>
+                    </control>
+                    <control type="image">
+                        <bordersize>20</bordersize>
+                        <bordertexture border="32" colordiffuse="ff000000">common/shadow-20.png</bordertexture>
+                        <texture border="20" colordiffuse="ffffffff">common/selectbox.png</texture>
                     </control>
                 </control>
                 <!-- Buttons -->
@@ -185,8 +199,7 @@
                         <onup condition="true">3021</onup>
                         <onup condition="String.IsEqual(Window.Property(colourpicker),$LOCALIZE[31202])">3023</onup>
                         <ondown condition="true">3021</ondown>
-                        <ondown condition="String.IsEqual(Window.Property(colourpicker),$LOCALIZE[31202])">3023
-                        </ondown>
+                        <ondown condition="String.IsEqual(Window.Property(colourpicker),$LOCALIZE[31202])">3023</ondown>
                         <!-- EDIT -->
                         <control type="button" id="3010">
                             <textoffsetx>10</textoffsetx>
