@@ -47,11 +47,12 @@
                     <control type="panel" id="3110">
                         <ondown>8999</ondown>
                         <scrolltime tween="sine" easing="out">200</scrolltime>
-                        <orientation>horizontal</orientation>
+                        <orientation>vertical</orientation>
                         <preloaditems>2</preloaditems>
                         <onclick>Skin.SetString(choosen_colour.name,$INFO[ListItem.Label])</onclick>
                         <onback>SetProperty(choosen_colour, $INFO[ListItem.Label])</onback>
                         <onclick>SetProperty(choosen_colour, $INFO[ListItem.Label])</onclick>
+                        <onclick>Action(Back)</onclick>
                         <itemlayout width="80" height="80">
                             <control type="image">
                                 <left>1</left>
