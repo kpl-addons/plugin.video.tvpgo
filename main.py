@@ -48,12 +48,11 @@ import json
 from datetime import datetime, timedelta
 from collections import namedtuple
 
-from resources.lib.color_picker import ColorPicker, TilesGen
-from libka import SimplePlugin, call, L, PathArg
+from resources.lib.colorpicker import ColorPicker
+from libka import SimplePlugin, call, L
 from libka.logs import log
 from libka.format import safefmt
-from libka.utils import adict
-# imports for libka only
+# imports for libka only (remove after move stuff to libka)
 from functools import wraps
 from xbmc import sleep as xbmc_sleep
 
@@ -91,16 +90,6 @@ EpgInfo.dt_end = property(lambda self: datetime.fromtimestamp(self.end / 1000))
 EpgInfo.time_range = property(lambda self: f'{self.dt_start:%H:%M} - {self.dt_end:%H:%M}')
 
 
-colors = ['', 'skyblue', 'dodgerblue', 'lightgreen', 'indianred', 'thistle', 'goldenrod', 'sandybrown', 'button_focus']
-
-# XXX - not used
-# quantity = addon.getSetting('tvpgo_quantity')
-
-
-class SourceException(Exception):
-    pass
-
-
 class RepeatException(Exception):
     pass
 
@@ -109,7 +98,10 @@ class Main(SimplePlugin):
 
     def __init__(self):
         super().__init__()
-        self.color: str = self.settings.get_string('tvpgo_color')
+        self.styles = {
+            'channel': [f'COLOR {self.settings.tvpgo_channel_color or "ffffffff"}', 'B'],
+            'time': [f'COLOR {self.settings.tvpgo_time_color or "80ffffff"}', 'B'],
+        }
         if self.settings.tvpgo_format == 0:
             self.title_format: str = '{channel} {time} - {title}'
         else:
@@ -122,6 +114,11 @@ class Main(SimplePlugin):
         self.fanart = self.resources.base / 'fanart.png'
         now = datetime.now()
         self.tz_offset = now - datetime.utcfromtimestamp(now.timestamp())
+        self.colorpicker = ColorPicker(addon=self)
+
+    def style(self, text, name):
+        """Style `text` by `name` rules."""
+        return self.format_title(text, style=self.styles[name])
 
     def home(self):
         # default art
@@ -238,7 +235,7 @@ class Main(SimplePlugin):
 
         with self.directory() as kdir:
             for ch in channels:
-                channel = self.format_title(ch.name, style=[f'COLOR {self.color}', 'B'])
+                channel = self.style(ch.name, 'channel')
                 epg = epg_data.get(ch.code)
                 if epg:
                     if epg.start and epg.end:
@@ -246,7 +243,7 @@ class Main(SimplePlugin):
                         dt_end = datetime.fromtimestamp(int(epg.end) / 1000)
 
                         if epg.title:
-                            time_delta = f'[COLOR 80FFFFFF][B][{dt_start:%H:%M} - {dt_end:%H:%M}][/B][/COLOR]'
+                            time_delta = self.style(f'[{dt_start:%H:%M} - {dt_end:%H:%M}]', 'time')
                             title = self.title_format.format(channel=channel, title=epg.title, time=time_delta)
                         else:
                             title = channel
@@ -262,7 +259,7 @@ class Main(SimplePlugin):
                                     'year': epg.year, 'plotoutline': epg.desc,
                                     'plot': epg.desc_long, 'duration': epg.duration},
                               menu=[
-                                  (L('Program'), self.cmd.Container.Update(self.program, epg.code)),
+                                  (L(30039, 'Program'), self.cmd.Container.Update(self.program, epg.code)),
                               ])
                 else:
                     log.debug(f'Missing EPG for {ch}')
@@ -280,7 +277,8 @@ class Main(SimplePlugin):
         with self.directory() as kdir:
             now_msec = datetime.now().timestamp() * 1000
             for epg in self.get_epgs(all_day=True, tv_code=code):
-                title = f'[COLOR 80FFFFFF][B][{epg.time_range}][/B][/COLOR] – {epg.title}'
+                time = self.style(f'[{epg.time_range}]', epg.time_range)
+                title = f'{time} – {epg.title}'
                 if epg.start > now_msec:
                     kdir.item(title, self.nop)
                 else:
@@ -382,9 +380,7 @@ class Main(SimplePlugin):
 
                 p_title = p['title']
                 p_desc = p['description']
-                p_time_delta = '[COLOR 80FFFFFF][B][{0} - {1}][/B][/COLOR]'.format(hm(p['date_start']),
-                                                                                   hm(p['date_end']))
-
+                p_time_delta = self.style(f'{hm(p["date_start"])} - {hm(p["date_end"])}]', 'time')
                 p_logo = ''
                 program = p.get('program')
                 if program is not None:
@@ -401,7 +397,7 @@ class Main(SimplePlugin):
     def replay_programs_gen(self, ch_code, ch_img, date):
         with self.directory() as kdir:
             for p in self.replay_programs_array_gen(ch_code, date):
-                channel = self.format_title(p.name, style=[f'COLOR {self.color}', 'B'])
+                channel = self.style(p.name, 'channel')
                 title = self.title_format.format(channel=channel, title=p.title, time=p.time_delta)
                 art = {'thumb': p.img or ch_img, 'poster': p.img or ch_img, 'banner': self.banner,
                        'icon': self.icon, 'fanart': self.fanart}
@@ -498,7 +494,7 @@ class Main(SimplePlugin):
         #         protocol_type = 'hls'
         #         stream_mime_type = 'video/mp2t'
         #         return url_stream, protocol_type, stream_mime_type
-        
+
         sorted_data = sorted(streams, key=lambda d: list(str(d['totalBitrate'])), reverse=True)
         url_stream = sorted_data[0]['url']
         if sorted_data[0]['mimeType'] == 'application/dash+xml':
@@ -556,9 +552,4 @@ class Main(SimplePlugin):
 if __name__ == '__main__':
     import sys
     log.info(f'============= {sys.argv}')
-    if sys.argv[1] == 'color_picker':
-        ColorPicker()
-    elif sys.argv[2] == '?colorpicker=tiles':
-        TilesGen()
-    else:
-        Main().run()
+    Main().run()
