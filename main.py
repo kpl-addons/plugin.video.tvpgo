@@ -97,10 +97,18 @@ class RepeatException(Exception):
 class Main(SimplePlugin):
 
     def __init__(self):
+        def stylize(name, defcolor='ffffffff'):
+            colname = f'tvpgo_{name}_color'
+            styles = [f'COLOR {self.settings.get(colname) or defcolor}']
+            if self.settings.get(f'tvpgo_{name}_style_bold'):
+                styles.append('B')
+            log.info(f'STYLE({name}: {styles}')
+            return styles
+
         super().__init__()
         self.styles = {
-            'channel': [f'COLOR {self.settings.tvpgo_channel_color or "ffffffff"}', 'B'],
-            'time': [f'COLOR {self.settings.tvpgo_time_color or "80ffffff"}', 'B'],
+            'channel': stylize('channel', 'ffffffff'),
+            'time': stylize('time', '80ffffff'),
         }
         if self.settings.tvpgo_format == 0:
             self.title_format: str = '{channel} {time} - {title}'
@@ -225,7 +233,7 @@ class Main(SimplePlugin):
             ar_chan.append(ChannelInfo(code=ch_code, name=ch_name, img=ch_img, id=ch_id))
 
         if self.settings.tvpgo_sort == 1:
-            ar_chan = sorted(ar_chan, key=lambda x: x[1])
+            ar_chan.sort(ar_chan, key=lambda x: x.name)
 
         return ar_chan
 
@@ -333,7 +341,7 @@ class Main(SimplePlugin):
             ar_chan.append(ChannelInfo(code=ch_code, name=ch_name, img=ch_img, id=ch_id))
 
         if self.settings.tvpgo_sort == 1:
-            ar_chan = sorted(ar_chan, key=lambda x: x[1])
+            ar_chan.sort(ar_chan, key=lambda x: x.name)
 
         return ar_chan
 

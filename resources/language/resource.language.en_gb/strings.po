@@ -56,10 +56,6 @@ msgctxt "#30011"
 msgid "Sort by"
 msgstr ""
 
-msgctxt "#30012"
-msgid "Amount of items on page"
-msgstr ""
-
 msgctxt "#30013"
 msgid "Select channel name color scheme"
 msgstr ""
@@ -119,6 +115,18 @@ msgstr ""
 msgctxt "#30040"
 msgid "Select time color scheme"
 msgstr ""
+
+msgctxt "#30041"
+msgid "Bold channel name"
+msgstr ""
+
+msgctxt "#30043"
+msgid "Bold time"
+msgstr ""
+
+#~ msgctxt "#30012"
+#~ msgid "Amount of items on page"
+#~ msgstr ""
 
 #~ msgctxt "#30009"
 #~ msgid "Select program display format"
