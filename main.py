@@ -247,8 +247,6 @@ class Main(SimplePlugin):
 
         with self.directory() as kdir:
             for ch in channels:
-                log.info('KOLOREK ' + self.color)
-                
                 channel = self.bold_text(self.format_title(ch.name, style=[f'COLOR {self.color}', 'B']))
                 epg = epg_data.get(ch.code)
                 if epg:
