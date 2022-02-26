@@ -417,7 +417,7 @@ class Main(SimplePlugin):
     def get_replay_program_streams(self, ch_code, prog_id, retry=0):
         retry += 1
 
-        url = f'https://sport.tvp.pl/api/tvp-stream/stream/data?station_code={ch_code}&record_id={prog_id}'
+        url = f'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={ch_code}&record_id={prog_id}'
 
         response = self.jget(url)
         if 'data' not in response:
