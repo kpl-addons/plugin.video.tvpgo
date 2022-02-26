@@ -38,9 +38,7 @@
 #   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
-import ast
 
-from six.moves import urllib_parse
 import xbmcgui
 import xbmcplugin
 import xbmcvfs
@@ -48,9 +46,10 @@ import re
 import json
 from datetime import datetime, timedelta
 from collections import namedtuple
+from urllib import parse as urllib_parse
 
 from resources.lib.colorpicker import ColorPicker
-from libka import SimplePlugin, call, L
+from libka import SimplePlugin, call, L, PathArg
 from libka.logs import log
 from libka.format import safefmt
 # imports for libka only (remove after move stuff to libka)
@@ -135,30 +134,9 @@ class Main(SimplePlugin):
         art = {'thumb': self.thumb, 'poster': self.poster, 'banner': self.banner,
                'icon': self.icon, 'fanart': self.fanart}
         with self.directory() as kdir:
-            kdir.menu('Kanały na żywo', self.live,
-                      info={'title': 'Kanały na żywo', 'sorttitle': 'Kanały na żywo', 'plot': ''},
-                      art=art)
-            kdir.menu('Archiwum', self.replay,
-                      info={'title': 'Archiwum', 'sorttitle': 'Archiwum', 'plot': ''},
-                      art=art)
-            kdir.menu('VOD', self.vod,
-                      info={'title': 'VOD', 'sorttitle': 'VOD', 'plot': ''},
-                      art=art)
-
-    # def get_requests(self, url, headers=None, data=None, txt=False):
-    #     try:
-    #         if data is not None:
-    #             response = self.post(url, headers=headers, json=data)
-    #         else:
-    #             response = self.get(url, headers=headers)
-
-    #         if not txt:
-    #             return json.loads(response.text)
-    #         else:
-    #             return response.text
-    #     except Exception:
-    #         xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028, 'Connection to the service has failed'), xbmcgui.NOTIFICATION_INFO, 6000, False)
-    #         raise SourceException('Error loading list')
+            kdir.menu('Kanały na żywo', self.live, art=art)
+            kdir.menu('Archiwum', self.replay, art=art)
+            kdir.menu('VOD', self.vod, art=art)
 
     # HACK, "@staticmethod" will be removed after move repeat_call to libka
     @staticmethod
@@ -435,22 +413,25 @@ class Main(SimplePlugin):
         return streams
 
     def vod(self):
-        vod_base_url = 'https://sport.tvp.pl/api/tvp-stream/block/list?device=android'
-        response = self.jget(vod_base_url)
+        response = self.jget('https://sport.tvp.pl/api/tvp-stream/block/list?device=android')
         with self.directory() as kdir:
             for item in response['data']:
-                kdir.menu(item['title'], call(self.get_vod_data, data=item))
+                kdir.menu(item['title'], call(self.vod_category, item['_id']))
 
-    def get_vod_data(self, data):
-        json_data = ast.literal_eval(data)
-        with self.directory() as kdir:
-            for item in json_data['items']:
-                kdir.play(item['title'],
-                          call(self.play_vod_item, station_code=item["station_code"], record_id=item["record_id"]))
+    def vod_category(self, cid: PathArg[int]):
+        response = self.jget('https://sport.tvp.pl/api/tvp-stream/block/list?device=android')
+        for category in response['data']:
+            if category['_id'] == cid:
+                with self.directory() as kdir:
+                    for item in category['items']:
+                        kdir.play(item['title'],
+                                  call(self.vod_play, station_code=item["station_code"], record_id=item["record_id"]))
+                # found category, ignore rest
+                break
 
-    def play_vod_item(self, station_code, record_id):
-        play_url = f'https://sport.tvp.pl/api/tvp-stream/stream/data?station_code={station_code}&record_id={record_id}&device=android'
-        request = self.jget(play_url)
+    def vod_play(self, station_code, record_id):
+        url = 'https://sport.tvp.pl/api/tvp-stream/stream/data'
+        request = self.jget(url, params={'station_code': station_code, 'record_id': record_id, 'device': 'android'})
         stream_url = request['data']['stream_url']
         play_item_url = self.jget(stream_url)
         self.play(play_item_url["url"], 'mpd')
