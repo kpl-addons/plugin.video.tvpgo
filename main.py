@@ -219,7 +219,8 @@ class Main(SimplePlugin):
 
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def channel_array_gen(self):
-        url = "https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations"
+        url = "https://sport.tvp.pl/api/tvp-stream/program-tv/stations?device=windows"
+
         response = self.jget(url)
         try:
             ch_data = response['data']
@@ -307,7 +308,10 @@ class Main(SimplePlugin):
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def play_channel(self, code, ch_id=None):
         streams = ''
+
+        #if ch_id == '':
         url = 'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={code}'.format(code=code)
+
         response = self.jget(url)
         try:
             live = response['data']
@@ -325,22 +329,45 @@ class Main(SimplePlugin):
 
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def replay_channels_array_gen(self):
-        url = "https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations"
-        response = self.jget(url)
+        url = 'https://hbb-prod.tvp.pl/apps/manager/api/hub/graphql'
+
+        data = {
+            'operationName': None,
+            'variables': {},
+            'extensions': {},
+            
+            'query': """
+        {
+          getStations {
+            items {
+              name
+              code
+              image_square {
+                url
+                __typename
+              }
+              background_color
+              __typename
+            }
+            __typename
+          }
+        }""" 
+        }
+
+        response = self.post(url, json=data).json()
         if 'data' not in response:
             raise RepeatException()
 
         ar_chan = []
-        for c in response['data']:
+        for c in response['data']['getStations']['items']:
             ch_code = c['code']
             ch_name = c['name'].replace('EPG - ', '')
 
             ch_name = re.sub(r"([0-9]+(\.[0-9]+)?)", r" \1", ch_name).strip().replace('  ', ' ')
 
-            ch_id = c['id']
             ch_img = c['image_square']['url'].replace('{width}', '500').replace('{height}', '500')
 
-            ar_chan.append(ChannelInfo(code=ch_code, name=ch_name, img=ch_img, id=ch_id))
+            ar_chan.append(ChannelInfo(code=ch_code, name=ch_name, img=ch_img, id=None))
 
         if self.settings.tvpgo_sort == 1:
             ar_chan.sort(key=lambda x: x[2].strip())
@@ -423,7 +450,7 @@ class Main(SimplePlugin):
     def get_replay_program_streams(self, ch_code, prog_id, retry=0):
         retry += 1
 
-        url = f'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={ch_code}&record_id={prog_id}'
+        url = f'https://sport.tvp.pl/api/tvp-stream/stream/data?station_code={ch_code}&record_id={prog_id}'
 
         response = self.jget(url)
         if 'data' not in response:
