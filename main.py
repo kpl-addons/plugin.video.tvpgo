@@ -38,6 +38,7 @@
 #   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
+import ast
 
 from six.moves import urllib_parse
 import xbmcgui
@@ -60,6 +61,7 @@ from xbmc import sleep as xbmc_sleep
 # TODO:  move it to libka.utils
 def repeat_call(repeat, delay=0, catch=Exception, *, on_fail=None):
     """Repeat `repeat` times. Delay `delay` between retries."""
+
     def decorator(method):
         @wraps(method)
         def wrapper(*args, **kwargs):
@@ -136,8 +138,11 @@ class Main(SimplePlugin):
             kdir.menu('Kanały na żywo', self.live,
                       info={'title': 'Kanały na żywo', 'sorttitle': 'Kanały na żywo', 'plot': ''},
                       art=art)
-            kdir.menu('Replay', self.replay,
-                      info={'title': 'Replay', 'sorttitle': 'Replay', 'plot': ''},
+            kdir.menu('Archiwum', self.replay,
+                      info={'title': 'Archiwum', 'sorttitle': 'Archiwum', 'plot': ''},
+                      art=art)
+            kdir.menu('VOD', self.vod,
+                      info={'title': 'VOD', 'sorttitle': 'VOD', 'plot': ''},
                       art=art)
 
     # def get_requests(self, url, headers=None, data=None, txt=False):
@@ -388,7 +393,7 @@ class Main(SimplePlugin):
 
                 p_title = p['title']
                 p_desc = p['description']
-                p_time_delta = self.style(f'{hm(p["date_start"])} - {hm(p["date_end"])}]', 'time')
+                p_time_delta = self.style(f'[{hm(p["date_start"])} - {hm(p["date_end"])}]', 'time')
                 p_logo = ''
                 program = p.get('program')
                 if program is not None:
@@ -428,6 +433,27 @@ class Main(SimplePlugin):
         streams = response['formats']
 
         return streams
+
+    def vod(self):
+        vod_base_url = 'https://sport.tvp.pl/api/tvp-stream/block/list?device=android'
+        response = self.jget(vod_base_url)
+        with self.directory() as kdir:
+            for item in response['data']:
+                kdir.menu(item['title'], call(self.get_vod_data, data=item))
+
+    def get_vod_data(self, data):
+        json_data = ast.literal_eval(data)
+        with self.directory() as kdir:
+            for item in json_data['items']:
+                kdir.play(item['title'],
+                          call(self.play_vod_item, station_code=item["station_code"], record_id=item["record_id"]))
+
+    def play_vod_item(self, station_code, record_id):
+        play_url = f'https://sport.tvp.pl/api/tvp-stream/stream/data?station_code={station_code}&record_id={record_id}&device=android'
+        request = self.jget(play_url)
+        stream_url = request['data']['stream_url']
+        play_item_url = self.jget(stream_url)
+        self.play(play_item_url["url"], 'mpd')
 
     def play(self, url_stream, drm_protocol, drm_mime_type=None):
         from inputstreamhelper import Helper  # pylint: disable=import-outside-toplevel
@@ -559,5 +585,6 @@ class Main(SimplePlugin):
 
 if __name__ == '__main__':
     import sys
+
     log.info(f'============= {sys.argv}')
     Main().run()
