@@ -91,6 +91,8 @@ EpgInfo.dt_start = property(lambda self: datetime.fromtimestamp(self.start / 100
 EpgInfo.dt_end = property(lambda self: datetime.fromtimestamp(self.end / 1000))
 EpgInfo.time_range = property(lambda self: f'{self.dt_start:%H:%M} - {self.dt_end:%H:%M}')
 
+sport_tvp_base_url = 'https://sport.tvp.pl/api/tvp-stream'
+
 
 class RepeatException(Exception):
     pass
@@ -288,7 +290,7 @@ class Main(SimplePlugin):
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def play_channel(self, code, ch_id=None):
         streams = ''
-        url = 'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={code}'.format(code=code)
+        url = f'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={code}'
         response = self.jget(url)
         try:
             live = response['data']
@@ -307,7 +309,7 @@ class Main(SimplePlugin):
 
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def replay_channels_array_gen(self):
-        url = "https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations"
+        url = f'https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations'
         response = self.jget(url)
         if 'data' not in response:
             raise RepeatException()
@@ -414,14 +416,14 @@ class Main(SimplePlugin):
         return streams
 
     def vod(self):
-        response = self.jget('https://sport.tvp.pl/api/tvp-stream/block/list?device=android')
+        response = self.jget(f'{sport_tvp_base_url}/block/list?device=android')
         with self.directory() as kdir:
             for item in response['data']:
                 kdir.menu(item['title'], call(self.vod_category, item['_id']))
             kdir.menu('SZUKAJ', self.searches)
 
     def vod_category(self, cid: PathArg[int]):
-        response = self.jget('https://sport.tvp.pl/api/tvp-stream/block/list?device=android')
+        response = self.jget(f'{sport_tvp_base_url}/block/list?device=android')
         for category in response['data']:
             if category['_id'] == cid:
                 with self.directory() as kdir:
@@ -432,7 +434,7 @@ class Main(SimplePlugin):
                 break
 
     def vod_play(self, station_code, record_id):
-        url = 'https://sport.tvp.pl/api/tvp-stream/stream/data'
+        url = f'{sport_tvp_base_url}/stream/data'
         request = self.jget(url, params={'station_code': station_code, 'record_id': record_id, 'device': 'android'})
         stream_url = request['data']['stream_url']
         play_item_url = self.jget(stream_url)
@@ -488,17 +490,46 @@ class Main(SimplePlugin):
         return Search(addon=self, name='vodepisodes', method=partial(self.get_search_results, scope='vodepisodes'))
 
     def get_search_results(self, query, scope):
-        return self.list_search_items(self.jget(
-            f'https://sport.tvp.pl/api/tvp-stream/search?query={query}&scope={scope}&limit=50&page=1&limit=50&device=android'))
+        data = self.jget(
+            f'{sport_tvp_base_url}/search?query={query}&scope={scope}&limit=50&page=1&limit=50&device=android')
+        return self.list_occurrenceitems(data)
 
-    def list_search_items(self, data):
+    def list_occurrenceitems(self, data):
         with self.directory() as kdir:
-            for item in data["data"]["occurrenceitem"]:
+            for item in data["data"]['occurrenceitem']:
                 kdir.menu(f'{self.style(item["title"], "channel")} - {item["subtitle"]}',
-                          call(self.search_deeper, id=item['id']))
+                          call(self.search_deeper, occurrenceid=item['id']))
 
-    def search_deeper(self, id):
-        log(f'PASSED ID: {id}')
+    def search_deeper(self, occurrenceid):
+        response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video?id={occurrenceid}&device=android')
+        with self.directory() as kdir:
+            for data in response['data']['tabs']:
+                for item in data["params"]["seasons"]:
+                    kdir.menu(self.style(item['title'], 'channel'),
+                              call(self.get_exact_results, lastid=item['id']))
+
+    def get_exact_results(self, lastid):
+        response = self.jget(f'{sport_tvp_base_url}/season/videos?id={lastid}&page=1&limit=20&device=android')
+        with self.directory() as kdir:
+            for item in response["data"]:
+                kdir.play(f'{self.style(item["title"], "channel")} - {item["subtitle"]}',
+                          call(self.play_search_result, playid=item['id']))
+
+    def play_search_result(self, playid):
+        stream_data = self.jget(f'{sport_tvp_base_url}/stream/data?id={playid}&device=android')
+        stream_url = self.jget(stream_data['data']['stream_url'])
+        streams = stream_url['formats']
+        url_stream = self.get_stream_of_type(streams)['url']
+        protocol_type = self.get_stream_of_type(streams)['protocol']
+        stream_mime_type = self.get_stream_of_type(streams)['mime_type']
+
+        play_item = xbmcgui.ListItem(path=url_stream)
+        play_item.setMimeType(stream_mime_type)
+        play_item.setContentLookup(False)
+        play_item.setProperty('inputstreamaddon', 'inputstream.adaptive')
+        play_item.setProperty('inputstream.adaptive.manifest_type', protocol_type)
+        play_item.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
+        xbmcplugin.setResolvedUrl(self.handle, True, listitem=play_item)
 
     def searches(self):
         search_menu = [
@@ -571,6 +602,13 @@ class Main(SimplePlugin):
             }
 
         elif sorted_data[0]['mimeType'] == 'video/mp2t':
+            return {
+                'url': url_stream,
+                'mime_type': mime_type,
+                'protocol': 'hls'
+            }
+
+        elif sorted_data[0]['mimeType'] == 'video/mp4':
             return {
                 'url': url_stream,
                 'mime_type': mime_type,
