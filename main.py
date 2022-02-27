@@ -501,12 +501,20 @@ class Main(SimplePlugin):
                           call(self.search_deeper, occurrenceid=item['id']))
 
     def search_deeper(self, occurrenceid):
-        response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video?id={occurrenceid}&device=android')
+        query = {
+            'id': occurrenceid,
+            'device': 'android'
+        }
+        response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video?id={occurrenceid}&device=android',
+                             params=query)
         with self.directory() as kdir:
             for data in response['data']['tabs']:
-                for item in data["params"]["seasons"]:
-                    kdir.menu(self.style(item['title'], 'channel'),
-                              call(self.get_exact_results, lastid=item['id']))
+                if data['endpoint_type'] == 'SEASON_VIDEOS':
+                    for item in data["params"]["seasons"]:
+                        kdir.menu(self.style(item['title'], 'channel'),
+                                  call(self.get_exact_results, lastid=item['id']))
+                else:
+                    log('No data.')
 
     def get_exact_results(self, lastid):
         response = self.jget(f'{sport_tvp_base_url}/season/videos?id={lastid}&page=1&limit=20&device=android')
