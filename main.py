@@ -48,8 +48,8 @@ from datetime import datetime, timedelta
 from collections import namedtuple
 from urllib import parse as urllib_parse
 
-from resources.lib.colorpicker import ColorPicker
-from libka import SimplePlugin, call, L, PathArg
+from resources.lib.colorpicker import StylePicker
+from libka import SimplePlugin, call, subobject, PathArg, L
 from libka.logs import log
 from libka.format import safefmt
 # imports for libka only (remove after move stuff to libka)
@@ -99,22 +99,18 @@ class Main(SimplePlugin):
 
     def __init__(self):
         def stylize(name, defcolor='ffffffff'):
-            colname = f'tvpgo_{name}_color'
-            styles = [f'COLOR {self.settings.get(colname) or defcolor}']
-            if self.settings.get(f'tvpgo_{name}_style_bold'):
-                styles.append('B')
-            log.info(f'STYLE({name}: {styles}')
-            return styles
+            return StylePicker.style_parse(self.settings.get(f'tvpgo_{name}_style') or defcolor)
 
         super().__init__()
         self.styles = {
             'channel': stylize('channel', 'ffffffff'),
             'time': stylize('time', '80ffffff'),
+            'title': stylize('title', 'ffffffff'),
         }
         if self.settings.tvpgo_format == 0:
-            self.title_format: str = '{channel} {time} - {title}'
+            self.title_format: str = '{channel} {time} – {title}'
         else:
-            self.title_format: str = '{channel} {title} - {time}'
+            self.title_format: str = '{channel} {title} – {time}'
 
         self.thumb = self.media.image('landscape.png')
         self.poster = self.media.image('poster.png')
@@ -123,7 +119,10 @@ class Main(SimplePlugin):
         self.fanart = self.resources.base / 'fanart.png'
         now = datetime.now()
         self.tz_offset = now - datetime.utcfromtimestamp(now.timestamp())
-        self.colorpicker = ColorPicker(addon=self)
+
+    @subobject
+    def colorpicker(self):
+        return StylePicker(addon=self)
 
     def style(self, text, name):
         """Style `text` by `name` rules."""
@@ -235,7 +234,8 @@ class Main(SimplePlugin):
 
                         if epg.title:
                             time_delta = self.style(f'[{dt_start:%H:%M} - {dt_end:%H:%M}]', 'time')
-                            title = self.title_format.format(channel=channel, title=epg.title, time=time_delta)
+                            title = self.style(epg.title, 'title')
+                            title = self.title_format.format(channel=channel, title=title, time=time_delta)
                         else:
                             title = channel
                     else:
@@ -268,8 +268,9 @@ class Main(SimplePlugin):
         with self.directory() as kdir:
             now_msec = datetime.now().timestamp() * 1000
             for epg in self.get_epgs(all_day=True, tv_code=code):
-                time = self.style(f'[{epg.time_range}]', epg.time_range)
-                title = f'{time} – {epg.title}'
+                time = self.style(f'[{epg.time_range}]', 'time')
+                title = self.style(epg.title, 'title')
+                title = f'{time} – {title}'
                 if epg.start > now_msec:
                     kdir.item(title, self.nop)
                 else:
@@ -369,7 +370,7 @@ class Main(SimplePlugin):
                 ch_name = p['station']['name'].replace('EPG - ', '')
                 ch_name = re.sub(r"([0-9]+(\.[0-9]+)?)", r" \1", ch_name).strip().replace('  ', ' ')
 
-                p_title = p['title']
+                p_title = self.style(p['title'], 'title')
                 p_desc = p['description']
                 p_time_delta = self.style(f'[{hm(p["date_start"])} - {hm(p["date_end"])}]', 'time')
                 p_logo = ''

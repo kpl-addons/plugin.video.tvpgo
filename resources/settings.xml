@@ -33,35 +33,35 @@
 		</category>
 		<category id="tvpgo_view_settings" label="30007" help="">
 			<group id="1">
-				<setting id="tvpgo_channel_color" type="string" label="30013" help="">
+				<setting id="tvpgo_channel_style" type="string" label="30013" help="">
 					<level>0</level>
-					<default>ffffffff</default>
+					<default>ffffffff, B</default>
 					<constraints>
 						<allowempty>false</allowempty>
 					</constraints>
 					<control type="button" format="action">
-						<data>RunPlugin(plugin://plugin.video.tvpgo/colorpicker/show/tvpgo_channel_color)</data>
+						<data>RunPlugin(plugin://plugin.video.tvpgo/colorpicker/show/tvpgo_channel_style?enabled=color+bold+italic)</data>
 					</control>
 				</setting>
-				<setting id="tvpgo_channel_style_bold" label="30041" type="boolean">
-					<level>0</level>
-					<default>false</default>
-					<control type="toggle" />
-				</setting>
-				<setting id="tvpgo_time_color" type="string" label="30040" help="">
+				<setting id="tvpgo_time_style" type="string" label="30040" help="">
 					<level>0</level>
 					<default>80ffffff</default>
 					<constraints>
 						<allowempty>false</allowempty>
 					</constraints>
 					<control type="button" format="action">
-						<data>RunPlugin(plugin://plugin.video.tvpgo/colorpicker/show/tvpgo_time_color)</data>
+						<data>RunPlugin(plugin://plugin.video.tvpgo/colorpicker/show/tvpgo_time_style/80ffffff?enabled=color+bold+italic)</data>
 					</control>
 				</setting>
-				<setting id="tvpgo_time_style_bold" label="30043" type="boolean">
+				<setting id="tvpgo_title_style" type="string" label="30044" help="">
 					<level>0</level>
-					<default>false</default>
-					<control type="toggle" />
+					<default>ffffffff</default>
+					<constraints>
+						<allowempty>false</allowempty>
+					</constraints>
+					<control type="button" format="action">
+						<data>RunPlugin(plugin://plugin.video.tvpgo/colorpicker/show/tvpgo_title_style/80ffffff?enabled=color+bold+italic)</data>
+					</control>
 				</setting>
 				<setting id="tvpgo_format" type="integer" label="30030" help="">
 					<level>0</level>
