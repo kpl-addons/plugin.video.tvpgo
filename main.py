@@ -49,11 +49,12 @@ from collections import namedtuple
 from urllib import parse as urllib_parse
 
 from resources.lib.colorpicker import ColorPicker
-from libka import SimplePlugin, call, L, PathArg
+from libka import SimplePlugin, call, L, PathArg, subobject
+from libka.search import Search
 from libka.logs import log
 from libka.format import safefmt
 # imports for libka only (remove after move stuff to libka)
-from functools import wraps
+from functools import wraps, partial
 from xbmc import sleep as xbmc_sleep
 
 
@@ -417,6 +418,7 @@ class Main(SimplePlugin):
         with self.directory() as kdir:
             for item in response['data']:
                 kdir.menu(item['title'], call(self.vod_category, item['_id']))
+            kdir.menu('SZUKAJ', self.searches)
 
     def vod_category(self, cid: PathArg[int]):
         response = self.jget('https://sport.tvp.pl/api/tvp-stream/block/list?device=android')
@@ -468,6 +470,47 @@ class Main(SimplePlugin):
 
             return url_stream
 
+    @subobject
+    def search_vod_bestresults(self):
+        return Search(addon=self, name='bestresults', method=partial(self.get_search_results, scope='bestresults'))
+
+    @subobject
+    def search_vod_7days_archive(self):
+        return Search(addon=self, name='programtv', method=partial(self.get_search_results, scope='programtv'))
+
+    @subobject
+    def search_vod_prog_mov_eps(self):
+        return Search(addon=self, name='vodprogrammesandepisodes',
+                      method=partial(self.get_search_results, scope='vodprogrammesandepisodes'))
+
+    @subobject
+    def search_vod_episodes(self):
+        return Search(addon=self, name='vodepisodes', method=partial(self.get_search_results, scope='vodepisodes'))
+
+    def get_search_results(self, query, scope):
+        return self.list_search_items(self.jget(
+            f'https://sport.tvp.pl/api/tvp-stream/search?query={query}&scope={scope}&limit=50&page=1&limit=50&device=android'))
+
+    def list_search_items(self, data):
+        with self.directory() as kdir:
+            for item in data["data"]["occurrenceitem"]:
+                kdir.menu(f'{self.style(item["title"], "channel")} - {item["subtitle"]}',
+                          call(self.search_deeper, id=item['id']))
+
+    def search_deeper(self, id):
+        log(f'PASSED ID: {id}')
+
+    def searches(self):
+        search_menu = [
+            {'category': 'Najlepsze wyniki', 'action': self.search_vod_bestresults},
+            {'category': '7 dniowa historia', 'action': self.search_vod_7days_archive},
+            {'category': 'Programy, filmy i seriale', 'action': self.search_vod_prog_mov_eps},
+            {'category': 'Odcinki', 'action': self.search_vod_episodes}
+        ]
+        with self.directory() as kdir:
+            for item in search_menu:
+                kdir.menu(item['category'], item['action'])
+
     @staticmethod
     def adjust_timeshift_args(input_url, begin_time=None, keep_begin_time=True):
         input_url_parsed = urllib_parse.urlparse(input_url)
@@ -512,24 +555,25 @@ class Main(SimplePlugin):
 
         sorted_data = sorted(streams, key=lambda d: list(str(d['totalBitrate'])), reverse=True)
         url_stream = sorted_data[0]['url']
+        mime_type = sorted_data[0]['mimeType']
         if sorted_data[0]['mimeType'] == 'application/dash+xml':
             return {
                 'url': url_stream,
-                'mime_type': sorted_data[0]['mimeType'],
+                'mime_type': mime_type,
                 'protocol': 'mpd'
             }
 
         elif sorted_data[0]['mimeType'] == 'application/x-mpegurl':
             return {
                 'url': url_stream,
-                'mime_type': sorted_data[0]['mimeType'],
+                'mime_type': mime_type,
                 'protocol': 'hls'
             }
 
         elif sorted_data[0]['mimeType'] == 'video/mp2t':
             return {
                 'url': url_stream,
-                'mime_type': sorted_data[0]['mimeType'],
+                'mime_type': mime_type,
                 'protocol': 'hls'
             }
 
