@@ -220,7 +220,7 @@ class Main(SimplePlugin):
             ar_chan.append(ChannelInfo(code=ch_code, name=ch_name, img=ch_img, id=ch_id))
 
         if self.settings.tvpgo_sort == 1:
-            ar_chan.sort(ar_chan, key=lambda x: x.name)
+            ar_chan = sorted(ar_chan, key=lambda x: x.name)
 
         return ar_chan
 
@@ -328,7 +328,7 @@ class Main(SimplePlugin):
             ar_chan.append(ChannelInfo(code=ch_code, name=ch_name, img=ch_img, id=ch_id))
 
         if self.settings.tvpgo_sort == 1:
-            ar_chan.sort(ar_chan, key=lambda x: x.name)
+            ar_chan = sorted(ar_chan, key=lambda x: x.name)
 
         return ar_chan
 
