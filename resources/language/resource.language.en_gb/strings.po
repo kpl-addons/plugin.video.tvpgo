@@ -10,10 +10,10 @@ msgstr ""
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: XBMC Translation Team\n"
 "Language-Team: English (http://www.transifex.com/projects/p/xbmc-addons/language/en/)\n"
+"Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgctxt "#30000"
@@ -52,52 +52,12 @@ msgctxt "#30008"
 msgid "Default"
 msgstr ""
 
-msgctxt "#30009"
-msgid "Select program display format"
-msgstr ""
-
-msgctxt "#30010"
-msgid "Set Auto-view"
-msgstr ""
-
 msgctxt "#30011"
 msgid "Sort by"
 msgstr ""
 
-msgctxt "#30012"
-msgid "Amount of items on page"
-msgstr ""
-
 msgctxt "#30013"
 msgid "Select channel name color scheme"
-msgstr ""
-
-msgctxt "#30014"
-msgid "[COLOR skyblue]Lightblue[/COLOR]"
-msgstr ""
-
-msgctxt "#30015"
-msgid "[COLOR dodgerblue]Darkblue[/COLOR]"
-msgstr ""
-
-msgctxt "#30016"
-msgid "[COLOR lightgreen]Lightgreen[/COLOR]"
-msgstr ""
-
-msgctxt "#30017"
-msgid "[COLOR indianred]Red[/COLOR]"
-msgstr ""
-
-msgctxt "#30018"
-msgid "[COLOR thistle]Violet[/COLOR]"
-msgstr ""
-
-msgctxt "#30019"
-msgid "[COLOR goldenrod]Gold[/COLOR]"
-msgstr ""
-
-msgctxt "#30020"
-msgid "[COLOR sandybrown]Brown[/COLOR]"
 msgstr ""
 
 msgctxt "#30021"
@@ -148,30 +108,82 @@ msgctxt "#30032"
 msgid "Program title - [Time duration]"
 msgstr ""
 
-msgctxt "#30033"
-msgid "Episodes"
-msgstr ""
-
-msgctxt "#30034"
-msgid "Files"
-msgstr ""
-
-msgctxt "#30035"
-msgid "Movies"
-msgstr ""
-
-msgctxt "#30036"
-msgid "TV shows"
-msgstr ""
-
-msgctxt "#30037"
-msgid "Videos"
-msgstr ""
-
-msgctxt "#30038"
-msgid "[COLOR button_focus]Adaptive[/COLOR]"
-msgstr ""
-
 msgctxt "#30039"
-msgid "Highlight text"
+msgid "Program"
 msgstr ""
+
+msgctxt "#30040"
+msgid "Select time color scheme"
+msgstr ""
+
+msgctxt "#30041"
+msgid "Bold channel name"
+msgstr ""
+
+msgctxt "#30043"
+msgid "Bold time"
+msgstr ""
+
+#~ msgctxt "#30012"
+#~ msgid "Amount of items on page"
+#~ msgstr ""
+
+#~ msgctxt "#30009"
+#~ msgid "Select program display format"
+#~ msgstr ""
+
+#~ msgctxt "#30010"
+#~ msgid "Set Auto-view"
+#~ msgstr ""
+
+#~ msgctxt "#30014"
+#~ msgid "Lightblue"
+#~ msgstr ""
+
+#~ msgctxt "#30015"
+#~ msgid "Darkblue"
+#~ msgstr ""
+
+#~ msgctxt "#30016"
+#~ msgid "Lightgreen"
+#~ msgstr ""
+
+#~ msgctxt "#30017"
+#~ msgid "Red"
+#~ msgstr ""
+
+#~ msgctxt "#30018"
+#~ msgid "Violet"
+#~ msgstr ""
+
+#~ msgctxt "#30019"
+#~ msgid "Gold"
+#~ msgstr ""
+
+#~ msgctxt "#30020"
+#~ msgid "Brown"
+#~ msgstr ""
+
+#~ msgctxt "#30033"
+#~ msgid "Episodes"
+#~ msgstr ""
+
+#~ msgctxt "#30034"
+#~ msgid "Files"
+#~ msgstr ""
+
+#~ msgctxt "#30035"
+#~ msgid "Movies"
+#~ msgstr ""
+
+#~ msgctxt "#30036"
+#~ msgid "TV shows"
+#~ msgstr ""
+
+#~ msgctxt "#30037"
+#~ msgid "Videos"
+#~ msgstr ""
+
+#~ msgctxt "#30038"
+#~ msgid "Adaptive"
+#~ msgstr ""

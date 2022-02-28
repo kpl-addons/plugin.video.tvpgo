@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window id="1199">
+    <defaultcontrol>3110</defaultcontrol>
+    <onunload>SetProperty(choosen_colour, $INFO[Skin.String(choosen_colour.name)])</onunload>
+    <onunload>ClearProperty(ColourValue)</onunload>
+    <controls>
+        <control type="group">
+            <width>1020</width>
+            <height>800</height>
+            <centertop>50%</centertop>
+            <centerleft>50%</centerleft>
+            <control type="image">
+                <left>-2000</left>
+                <top>-2000</top>
+                <width>6000</width>
+                <height>6000</height>
+                <animation effect="fade" time="300">VisibleChange</animation>
+                <animation effect="fade" start="0" end="100" time="300">WindowOpen</animation>
+                <animation effect="fade" start="100" end="0" time="200">WindowClose</animation>
+                <texture colordiffuse="C2FFFFFF">colors/ff000000.png</texture>
+                <visible>!Container(3110).IsUpdating</visible>
+            </control>
+            <control type="group">
+                <width>1020</width>
+                <height>800</height>
+                <control type="image">
+                    <texture colordiffuse="FF1A2123" border="20">common/box.png</texture>
+                </control>
+                <control type="label">
+                    <left>40</left>
+                    <top>0</top>
+                    <right>100</right>
+                    <height>70</height>
+                    <font>font32_title</font>
+                    <label>Color Picker</label>
+                    <aligny>center</aligny>
+                    <shadowcolor>black</shadowcolor>
+                </control>
+            </control>
+            <!-- Dialog Content -->
+            <control type="group">
+                <left>30</left>
+                <right>30</right>
+                <bottom>120</bottom>
+                <top>80</top>
+                <!-- Swatches -->
+                <control type="group">
+                    <!-- Colors Panel -->
+                    <control type="panel" id="3110">
+                        <ondown>8999</ondown>
+                        <scrolltime tween="sine" easing="out">200</scrolltime>
+                        <orientation>vertical</orientation>
+                        <preloaditems>2</preloaditems>
+                        <onclick>Skin.SetString(choosen_colour.name,$INFO[ListItem.Label])</onclick>
+                        <onback>SetProperty(choosen_colour, $INFO[ListItem.Label])</onback>
+                        <onclick>SetProperty(choosen_colour, $INFO[ListItem.Label])</onclick>
+                        <onclick>Action(Close)</onclick>
+                        <animation effect="fade" start="0" end="100" time="1000">WindowOpen</animation>
+                        <itemlayout width="80" height="80">
+                            <control type="image">
+                                <left>1</left>
+                                <bottom>1</bottom>
+                                <texture>$INFO[ListItem.Icon]</texture>
+                            </control>
+                        </itemlayout>
+                        <focusedlayout width="80" height="80">
+                            <control type="image">
+                                <left>1</left>
+                                <bottom>1</bottom>
+                                <texture>$INFO[ListItem.Icon]</texture>
+                            </control>
+                            <control type="button">
+                                <visible>false</visible>
+                                <onfocus>SetProperty(ColourValue,$INFO[ListItem.Label])</onfocus>
+                            </control>
+                        </focusedlayout>
+												<content>plugin://plugin.video.tvpgo/colorpicker/tiles</content>
+                    </control>
+                </control>
+                <!-- Selection Box -->
+                <control type="group">
+                    <left>-40</left>
+                    <top>-40</top>
+                    <width>160</width>
+                    <height>160</height>
+                    <visible>Control.Hasfocus(3110)</visible>
+                    <animation effect="slide" end="0,80" condition="Container(3110).Row(1)">Conditional</animation>
+                    <animation effect="slide" end="0,160" condition="Container(3110).Row(2)">Conditional</animation>
+                    <animation effect="slide" end="0,240" condition="Container(3110).Row(3)">Conditional</animation>
+                    <animation effect="slide" end="0,320" condition="Container(3110).Row(4)">Conditional</animation>
+                    <animation effect="slide" end="0,400" condition="Container(3110).Row(5)">Conditional</animation>
+                    <animation effect="slide" end="0,480" condition="Container(3110).Row(6)">Conditional</animation>
+                    <animation effect="slide" end="80" condition="Container(3110).Column(1)">Conditional</animation>
+                    <animation effect="slide" end="160" condition="Container(3110).Column(2)">Conditional</animation>
+                    <animation effect="slide" end="240" condition="Container(3110).Column(3)">Conditional</animation>
+                    <animation effect="slide" end="320" condition="Container(3110).Column(4)">Conditional</animation>
+                    <animation effect="slide" end="400" condition="Container(3110).Column(5)">Conditional</animation>
+                    <animation effect="slide" end="480" condition="Container(3110).Column(6)">Conditional</animation>
+                    <animation effect="slide" end="560" condition="Container(3110).Column(7)">Conditional</animation>
+                    <animation effect="slide" end="640" condition="Container(3110).Column(8)">Conditional</animation>
+                    <animation effect="slide" end="720" condition="Container(3110).Column(9)">Conditional</animation>
+                    <animation effect="slide" end="800" condition="Container(3110).Column(10)">Conditional</animation>
+                    <animation effect="slide" end="880" condition="Container(3110).Column(11)">Conditional</animation>
+                    <control type="image">
+                        <bordersize>20</bordersize>
+                        <texture colordiffuse="$INFO[Container(3110).ListItem.Label]" border="10">common/box.png</texture>
+                    </control>
+                    <control type="image">
+                        <bordersize>20</bordersize>
+                        <bordertexture border="32" colordiffuse="ff000000">common/shadow-20.png</bordertexture>
+                        <texture border="20" colordiffuse="ffffffff">common/selectbox.png</texture>
+                    </control>
+                </control>
+                <!-- Buttons -->
+                <control type="group">
+                    <top>600</top>
+                    <centerleft>50%</centerleft>
+                    <!-- Button grouplist -->
+                    <control type="grouplist" id="8999">
+                        <orientation>horizontal</orientation>
+                        <itemgap>10</itemgap>
+                        <onup>3110</onup>
+                        <!-- Close -->
+                        <control type="button" id="3012">
+                            <label>$LOCALIZE[15067]</label>
+                            <align>center</align>
+                            <texturefocus colordiffuse="ff01579b" border="5">common/box.png</texturefocus>
+                            <alttexturefocus colordiffuse="ff01579b" border="5">common/box.png</alttexturefocus>
+                            <texturenofocus colordiffuse="4D181818" border="5">common/box.png</texturenofocus>
+                            <textoffsetx>40</textoffsetx>
+                            <top>0</top>
+                            <height>75</height>
+                            <width>auto</width>
+                            <aligny>center</aligny>
+                            <texturenofocus/>
+                            <texturefocus/>
+                            <alttexturefocus/>
+                            <onclick>Skin.SetString(choosen_colour.name,$INFO[Skin.String(choosen_colour.name)])</onclick>
+                            <onback>SetProperty(choosen_colour, $INFO[Skin.String(choosen_colour.name)])</onback>
+                            <onclick>SetProperty(choosen_colour, $INFO[Skin.String(choosen_colour.name)])</onclick>
+                            <onclick>Action(Close)</onclick>
+                        </control>
+                        <!-- RESET -->
+                        <control type="button" id="3013">
+                            <label>$LOCALIZE[409]</label>
+                            <align>center</align>
+                            <texturefocus colordiffuse="ff01579b" border="5">common/box.png</texturefocus>
+                            <alttexturefocus colordiffuse="ff01579b" border="5">common/box.png</alttexturefocus>
+                            <texturenofocus colordiffuse="4D181818" border="5">common/box.png</texturenofocus>
+                            <textoffsetx>40</textoffsetx>
+                            <top>0</top>
+                            <height>75</height>
+                            <width>auto</width>
+                            <aligny>center</aligny>
+                            <texturenofocus/>
+                            <texturefocus/>
+                            <alttexturefocus/>
+                            <onclick>Skin.SetString(choosen_colour.name,ffffffff)</onclick>
+                            <onback>SetProperty(choosen_colour,ffffffff)</onback>
+                            <onclick>SetProperty(choosen_colour,ffffffff)</onclick>
+                            <onclick>Action(Close)</onclick>
+                        </control>
+                        <!-- EDIT -->
+                        <control type="button" id="3010">
+                            <label>$INFO[Window.Property(ColourValue),Value: ,]</label>
+                            <align>center</align>
+                            <texturefocus colordiffuse="ff01579b" border="5">common/box.png</texturefocus>
+                            <alttexturefocus colordiffuse="ff01579b" border="5">common/box.png</alttexturefocus>
+                            <texturenofocus colordiffuse="4D181818" border="5">common/box.png</texturenofocus>
+                            <top>0</top>
+                            <height>75</height>
+                            <width>250</width>
+                            <aligny>center</aligny>
+                            <texturenofocus/>
+                            <texturefocus/>
+                            <alttexturefocus/>
+                            <onclick>Skin.SetString(choosen_colour.name)</onclick>
+                        </control>
+                    </control>
+                    <!-- Colours Preview -->
+                    <control type="group">
+                        <top>20</top>
+                        <control type="group">
+                            <width>200</width>
+                            <centerleft>90%</centerleft>
+                            <control type="group">
+                                <height>40</height>
+                                <control type="image">
+                                    <texture border="32" colordiffuse="black">common/shadow-20.png</texture>
+                                    <visible>!Control.HasFocus(3021)</visible>
+                                </control>
+                                <control type="button" id="3021">
+                                    <texturefocus/>
+                                    <texturenofocus/>
+                                    <font/>
+                                    <textcolor>00ffffff</textcolor>
+                                    <onleft>3023</onleft>
+                                    <onright>3022</onright>
+                                    <onup>3010</onup>
+                                    <ondown>3015</ondown>
+                                    <onclick>SetProperty(colourpicker,Highlight)</onclick>
+                                    <onclick>SetFocus(3110)</onclick>
+                                </control>
+                                <control type="group">
+                                    <control type="image">
+                                        <texture colordiffuse="Skin.String(choosen_colour.name)" border="5">common/box.png</texture>
+                                        <visible>!Control.HasFocus(3110) | false</visible>
+                                    </control>
+                                    <control type="image">
+                                        <texture colordiffuse="$INFO[Skin.String(choosen_colour.name)]" border="5">common/box.png</texture>
+                                        <visible>Control.HasFocus(3110) + true</visible>
+                                    </control>
+                                    <control type="image">
+                                        <bordersize>20</bordersize>
+                                        <bordertexture border="32" colordiffuse="black">common/shadow-20.png
+                                        </bordertexture>
+                                        <texture border="20" colordiffuse="Skin.String(choosen_colour.name)">common/selectbox.png</texture>
+                                        <visible>Control.HasFocus(3021)</visible>
+                                    </control>
+                                </control>
+                                <control type="image">
+                                    <centertop>50%</centertop>
+                                    <centerleft>50%</centerleft>
+                                    <width>16</width>
+                                    <height>16</height>
+                                    <texture>diffuse/circle.png</texture>
+                                    <visible>true</visible>
+                                </control>
+                            </control>
+                        </control>
+                    </control>
+                </control>
+            </control>
+        </control>
+        <control type="group">
+            <visible>Container(3110).IsUpdating</visible>
+            <control type="image">
+                <left>-2000</left>
+                <top>-2000</top>
+                <width>6000</width>
+                <height>6000</height>
+                <animation effect="fade" time="300">VisibleChange</animation>
+                <animation effect="fade" start="0" end="100" time="300">WindowOpen</animation>
+                <animation effect="fade" start="100" end="0" time="200">WindowClose</animation>
+                <texture colordiffuse="C2FFFFFF">colors/ff000000.png</texture>
+            </control>
+            <control type="group">
+                <centerleft>50%</centerleft>
+                <centertop>50%</centertop>
+                <width>80</width>
+                <height>80</height>
+                <control type="group">
+                    <centerleft>50%</centerleft>
+                    <centertop>50%</centertop>
+                    <width>80</width>
+                    <height>80</height>
+                    <aspectratio>keep</aspectratio>
+                    <animation effect="rotate" condition="true" start="0" end="360" loop="true" time="1000" center="auto">Conditional</animation>
+                    <control type="image">
+                        <texture colordiffuse="ff0e2f44">common/loading-spinner.png</texture>
+                        <aspectratio>keep</aspectratio>
+                    </control>
+                    <control type="image">
+                        <texture colordiffuse="ff800000">common/loading-spinner.png</texture>
+                        <aspectratio>keep</aspectratio>
+                        <animation effect="fade" condition="true" start="0" end="75" pulse="true" time="1000">Conditional</animation>
+                    </control>
+                </control>
+                <control type="progress" id="10">
+                    <visible>false</visible>
+                </control>
+            </control>
+        </control>
+    </controls>
+</window>
