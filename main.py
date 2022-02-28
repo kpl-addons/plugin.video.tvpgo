@@ -436,10 +436,14 @@ class Main(SimplePlugin):
 
     def vod_play(self, station_code, record_id):
         url = f'{sport_tvp_base_url}/stream/data'
-        request = self.jget(url, params={'station_code': station_code, 'record_id': record_id, 'device': 'android'})
-        stream_url = request['data']['stream_url']
-        play_item_url = self.jget(stream_url)
-        self.play(play_item_url["url"], 'mpd')
+        response = self.jget(url, params={'station_code': station_code, 'record_id': record_id, 'device': 'android'})
+        return self.sort_vod_streams(response)
+
+    def sort_vod_streams(self, url):
+        response = self.jget(url["data"]["stream_url"])
+        play_item_url = self.get_stream_of_type(response['formats'])['url']
+        protocol = self.get_stream_of_type(response['formats'])['protocol']
+        self.play(play_item_url, drm_protocol=protocol)
 
     def play(self, url_stream, drm_protocol, drm_mime_type=None):
         from inputstreamhelper import Helper  # pylint: disable=import-outside-toplevel
@@ -551,7 +555,22 @@ class Main(SimplePlugin):
                         if season is not None:
                             for item in season:
                                 kdir.menu(f'{self.style(item["title"], "channel")}',
-                                    call(self.show_seasons, seasonid=item['id']))
+                                          call(self.show_seasons, seasonid=item['id']))
+        elif endpoint_type == 'OCCURRENCES':
+            query = {
+                'onlycatchup': 1,
+                'category[20][]': id,
+                'include_images': 1,
+                'page': 1,
+                'limit': 40,
+                'device': 'android'
+            }
+            response = self.jpost(f'{sport_tvp_base_url}/program-tv/occurrences', params=query)
+            with self.directory() as kdir:
+                for results in response['data']['tabs']:
+                    for item in results['params']['seasons']:
+                        kdir.menu(f'{self.style(item["title"], "channel")}',
+                                  call(self.show_seasons, seasonid=item['id']))
 
     def show_seasons(self, seasonid):
         query = {
