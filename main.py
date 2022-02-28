@@ -545,9 +545,13 @@ class Main(SimplePlugin):
             response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video', params=query)
             with self.directory() as kdir:
                 for results in response['data']['tabs']:
-                    for item in results['params']['seasons']:
-                        kdir.menu(f'{self.style(item["title"], "channel")}',
-                                  call(self.show_seasons, seasonid=item['id']))
+                    params = results.get('params', None)
+                    if params is not None:
+                        season = params.get('seasons', None)
+                        if season is not None:
+                            for item in season:
+                                kdir.menu(f'{self.style(item["title"], "channel")}',
+                                    call(self.show_seasons, seasonid=item['id']))
 
     def show_seasons(self, seasonid):
         query = {
