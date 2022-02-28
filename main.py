@@ -49,7 +49,7 @@ from collections import namedtuple
 from urllib import parse as urllib_parse
 
 from resources.lib.colorpicker import ColorPicker
-from libka import SimplePlugin, call, L, PathArg, subobject
+from libka import SimplePlugin, call, L, PathArg, subobject, search
 from libka.search import Search
 from libka.logs import log
 from libka.format import safefmt
@@ -127,6 +127,7 @@ class Main(SimplePlugin):
         now = datetime.now()
         self.tz_offset = now - datetime.utcfromtimestamp(now.timestamp())
         self.colorpicker = ColorPicker(addon=self)
+        self.search_collected = list()
 
     def style(self, text, name):
         """Style `text` by `name` rules."""
@@ -420,7 +421,7 @@ class Main(SimplePlugin):
         with self.directory() as kdir:
             for item in response['data']:
                 kdir.menu(item['title'], call(self.vod_category, item['_id']))
-            kdir.menu('SZUKAJ', self.searches)
+            kdir.menu('SZUKAJ', self.search)
 
     def vod_category(self, cid: PathArg[int]):
         response = self.jget(f'{sport_tvp_base_url}/block/list?device=android')
@@ -472,55 +473,93 @@ class Main(SimplePlugin):
 
             return url_stream
 
-    @subobject
-    def search_vod_bestresults(self):
-        return Search(addon=self, name='bestresults', method=partial(self.get_search_results, scope='bestresults'))
-
-    @subobject
-    def search_vod_7days_archive(self):
-        return Search(addon=self, name='programtv', method=partial(self.get_search_results, scope='programtv'))
-
-    @subobject
-    def search_vod_prog_mov_eps(self):
-        return Search(addon=self, name='vodprogrammesandepisodes',
-                      method=partial(self.get_search_results, scope='vodprogrammesandepisodes'))
-
-    @subobject
-    def search_vod_episodes(self):
-        return Search(addon=self, name='vodepisodes', method=partial(self.get_search_results, scope='vodepisodes'))
-
-    def get_search_results(self, query, scope):
-        data = self.jget(
-            f'{sport_tvp_base_url}/search?query={query}&scope={scope}&limit=50&page=1&limit=50&device=android')
-        return self.list_occurrenceitems(data)
+    def get_search_results(self, query, index):
+        list_queries = [
+            {
+                'query': query,
+                'scope': 'bestresults',
+                'limit': 20,
+                'page': 1,
+                'device': 'android'
+            },
+            {
+                'query': query,
+                'scope': 'programtv',
+                'limit': 20,
+                'page': 1,
+                'device': 'android'
+            },
+            {
+                'query': query,
+                'scope': 'vodprogrammesandepisodes',
+                'limit': 20,
+                'page': 1,
+                'device': 'android'
+            },
+            {
+                'query': query,
+                'scope': 'vodepisodes',
+                'limit': 20,
+                'page': 1,
+                'device': 'android'
+            }
+        ]
+        if index < 4:
+            response = self.jget(f'{sport_tvp_base_url}/search?', params=list_queries[index])
+            if response['data']:
+                self.search_collected.append(response['data']['occurrenceitem'])
+                index += 1
+                return self.get_search_results(query, index)
+        else:
+            return self.list_occurrenceitems(self.search_collected)
 
     def list_occurrenceitems(self, data):
+        filtered_data = {item['title']: item for results in data for item in results}
         with self.directory() as kdir:
-            for item in data["data"]['occurrenceitem']:
-                kdir.menu(f'{self.style(item["title"], "channel")} - {item["subtitle"]}',
-                          call(self.search_deeper, occurrenceid=item['id']))
+            for item in filtered_data.values():
+                kdir.menu(item['title'], call(self.get_search_tabs, occurrenceid=item['id']))
 
-    def search_deeper(self, occurrenceid):
+    def get_search_tabs(self, occurrenceid):
         query = {
             'id': occurrenceid,
             'device': 'android'
         }
-        response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video?id={occurrenceid}&device=android',
-                             params=query)
+        response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence', params=query)
         with self.directory() as kdir:
-            for data in response['data']['tabs']:
-                if data['endpoint_type'] == 'SEASON_VIDEOS':
-                    for item in data["params"]["seasons"]:
-                        kdir.menu(self.style(item['title'], 'channel'),
-                                  call(self.get_exact_results, lastid=item['id']))
-                else:
-                    log('No data.')
+            if response['data']:
+                for item in response['data']['tabs']:
+                    kdir.menu(self.style(item['title'], 'channel'),
+                              call(self.list_seasons, id=occurrenceid, endpoint_type=item['endpoint_type']))
+            else:
+                response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video', params=query)
+                for item in response['data']['tabs']:
+                    kdir.menu(self.style(item['title'], 'channel'),
+                              call(self.list_seasons, id=occurrenceid, endpoint_type=item['endpoint_type']))
 
-    def get_exact_results(self, lastid):
-        response = self.jget(f'{sport_tvp_base_url}/season/videos?id={lastid}&page=1&limit=20&device=android')
+    def list_seasons(self, id, endpoint_type):
+        if endpoint_type == 'SEASON_VIDEOS':
+            query = {
+                'id': id,
+                'device': 'android'
+            }
+            response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video', params=query)
+            with self.directory() as kdir:
+                for results in response['data']['tabs']:
+                    for item in results['params']['seasons']:
+                        kdir.menu(f'{self.style(item["title"], "channel")}',
+                                  call(self.show_seasons, seasonid=item['id']))
+
+    def show_seasons(self, seasonid):
+        query = {
+            'id': seasonid,
+            'page': 1,
+            'limit': 20,
+            'device': 'android'
+        }
+        response = self.jpost(f'{sport_tvp_base_url}/season/videos', params=query)
         with self.directory() as kdir:
-            for item in response["data"]:
-                kdir.play(f'{self.style(item["title"], "channel")} - {item["subtitle"]}',
+            for item in response['data']:
+                kdir.play(f'{self.style(item["title"], "channel")} – {item["subtitle"]}',
                           call(self.play_search_result, playid=item['id']))
 
     def play_search_result(self, playid):
@@ -539,16 +578,18 @@ class Main(SimplePlugin):
         play_item.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
         xbmcplugin.setResolvedUrl(self.handle, True, listitem=play_item)
 
-    def searches(self):
-        search_menu = [
-            {'category': 'Najlepsze wyniki', 'action': self.search_vod_bestresults},
-            {'category': '7 dniowa historia', 'action': self.search_vod_7days_archive},
-            {'category': 'Programy, filmy i seriale', 'action': self.search_vod_prog_mov_eps},
-            {'category': 'Odcinki', 'action': self.search_vod_episodes}
-        ]
-        with self.directory() as kdir:
-            for item in search_menu:
-                kdir.menu(item['category'], item['action'])
+    @search.folder
+    def searching_tvpgo(self, query):
+        self.get_search_results(query=query, index=0)
+        # search_menu = [
+        #     {'category': 'Najlepsze wyniki', 'action': self.search_vod_bestresults},
+        #     {'category': '7 dniowa historia', 'action': self.search_vod_7days_archive},
+        #     {'category': 'Programy, filmy i seriale', 'action': self.search_vod_prog_mov_eps},
+        #     {'category': 'Odcinki', 'action': self.search_vod_episodes}
+        # ]
+        # with self.directory() as kdir:
+        #     for item in search_menu:
+        #         kdir.menu(item['category'], item['action'])
 
     @staticmethod
     def adjust_timeshift_args(input_url, begin_time=None, keep_begin_time=True):
