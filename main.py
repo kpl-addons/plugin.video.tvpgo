@@ -477,6 +477,7 @@ class Main(SimplePlugin):
 
             return url_stream
 
+    # Searching ...
     def get_search_results(self, query, index):
         list_queries = [
             {
@@ -537,40 +538,47 @@ class Main(SimplePlugin):
             else:
                 response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video', params=query)
                 for item in response['data']['tabs']:
+                    params = item.get('params')
+                    people_id = params.get('id')
                     kdir.menu(self.style(item['title'], 'channel'),
-                              call(self.list_seasons, id=occurrenceid, endpoint_type=item['endpoint_type']))
+                              call(self.list_seasons, id=occurrenceid, people_id=people_id,
+                                   endpoint_type=item['endpoint_type']))
 
-    def list_seasons(self, id, endpoint_type):
+    def list_seasons(self, id, endpoint_type=None, people_id=None, cat20=None, cat30=None):
         if endpoint_type == 'SEASON_VIDEOS':
             query = {
                 'id': id,
                 'device': 'android'
             }
             response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video', params=query)
-            with self.directory() as kdir:
-                for results in response['data']['tabs']:
-                    params = results.get('params', None)
-                    if params is not None:
-                        season = params.get('seasons', None)
-                        if season is not None:
-                            for item in season:
-                                kdir.menu(f'{self.style(item["title"], "channel")}',
-                                          call(self.show_seasons, seasonid=item['id']))
+            self.list_search_items(response)
+
         elif endpoint_type == 'OCCURRENCES':
             query = {
                 'onlycatchup': 1,
-                'category[20][]': id,
+                'category[20][]': cat20,
+                'category[30][]': cat30,
                 'include_images': 1,
                 'page': 1,
                 'limit': 40,
                 'device': 'android'
             }
             response = self.jpost(f'{sport_tvp_base_url}/program-tv/occurrences', params=query)
+            self.list_search_items(response)
+
+        elif endpoint_type == 'PEOPLES':
+            query = {
+                'id': people_id,
+                'types[]': 30,
+                'page': 1,
+                'limit': 40,
+                'device': 'android'
+            }
+            response = self.jget(f'{sport_tvp_base_url}/program-tv/program/people', params=query)
             with self.directory() as kdir:
-                for results in response['data']['tabs']:
-                    for item in results['params']['seasons']:
-                        kdir.menu(f'{self.style(item["title"], "channel")}',
-                                  call(self.show_seasons, seasonid=item['id']))
+                for item in response['data']:
+                    kdir.menu(f'{self.style(item["name"], "channel")} [{item["description"]}]',
+                              call(self.call_people, person_id=item['id']))
 
     def show_seasons(self, seasonid):
         query = {
@@ -584,6 +592,57 @@ class Main(SimplePlugin):
             for item in response['data']:
                 kdir.play(f'{self.style(item["title"], "channel")} – {item["subtitle"]}',
                           call(self.play_search_result, playid=item['id']))
+
+    def call_people(self, person_id):
+        query = {
+            'personId': person_id,
+            'device': 'android'
+        }
+        response = self.jget(f'{sport_tvp_base_url}/search/people/tabs', params=query)
+        with self.directory() as kdir:
+            if response['data']:
+                for item in response['data']:
+                    kdir.menu(item['title'], call(self.person_search, person_id=item['params']['personId'],
+                                                  scope=item['params']['scope']))
+            else:
+                kdir.item('Brak informacji.', self.nop)
+
+    def person_search(self, person_id, scope):
+        query = {
+            'scope': scope,
+            'personId': person_id,
+            'page': 1,
+            'limit': 40,
+            'device': 'android'
+        }
+        response = self.jget(f'{sport_tvp_base_url}/search/people', params=query)
+        with self.directory() as kdir:
+            for item in response['data']:
+                kdir.menu(f'{self.style(item["title"], "channel")} – {item["subtitle"]}',
+                          call(self.person_search_result, program_id=item['id']))
+
+    def person_search_result(self, program_id):
+        query = {
+            'id': program_id,
+            'device': 'android'
+        }
+        response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence', params=query)
+        with self.directory() as kdir:
+            if response['data']:
+                for item in response['data']['tabs']:
+                    kdir.menu(self.style(item['title'], 'channel'),
+                              call(self.list_seasons, id=program_id, endpoint_type=item['endpoint_type']))
+
+    def list_search_items(self, data):
+        with self.directory() as kdir:
+            for results in data['data']['tabs']:
+                params = results.get('params', None)
+                if params is not None:
+                    season = params.get('seasons', None)
+                    if season is not None:
+                        for item in season:
+                            kdir.menu(f'{self.style(item["title"], "channel")}',
+                                      call(self.show_seasons, seasonid=item['id']))
 
     def play_search_result(self, playid):
         stream_data = self.jget(f'{sport_tvp_base_url}/stream/data?id={playid}&device=android')
