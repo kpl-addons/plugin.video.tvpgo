@@ -508,16 +508,9 @@ class Main(SimplePlugin):
         xbmcgui.Dialog().notification('TVP GO', L(30025, 'Generate playlist'), xbmcgui.NOTIFICATION_INFO)
         data = '#EXTM3U\n'
 
-        for item in self.channel_array_gen():
-            ch_code = item.code
-            ch_name = item.name
-            ch_logo = item.img
-            if ch_code == '':
-                ch_id = item.id
-            else:
-                ch_id = ''
-            data += (f'#EXTINF:0 tvg-id="{ch_name}" tvg-logo="{ch_logo}" group-title="TVPGO",{ch_name}\n'
-                     f'plugin://plugin.video.tvpgo/list?ch_code={ch_code}&ch_id={ch_id}\n')
+        for channel in self.channel_array_gen():
+            data += (f'#EXTINF:0 tvg-id="{channel.name}" tvg-logo="{channel.img}" group-title="TVPGO",{channel.name}\n'
+                     f'plugin://plugin.video.tvpgo/play_channel?code={channel.code}&ch_id={channel.id}\n')
 
         try:
             f = xbmcvfs.File(path_m3u + file_name, 'w')
