@@ -146,7 +146,7 @@ msgstr "[Czas trwania] - Tytuł programu"
 
 msgctxt "#30032"
 msgid "Program title - [Time duration]"
-msgstr "[Czas trwania] - Tytuł programu"
+msgstr "Tytuł programu - [Czas trwania]"
 
 msgctxt "#30033"
 msgid "Episodes"
