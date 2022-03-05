@@ -18,7 +18,7 @@
 	<language>en, pl</language>
 	<platform>all</platform>
 	<license>MIT</license>
-	<website>https://github.com/kodi-pl-addons/plugin.video.tvpgo</website>
+	<website>https://github.com/kpl-addons/plugin.video.tvpgo</website>
 	<assets>
 		<icon>icon.png</icon>
 		<fanart>fanart.jpg</fanart>
