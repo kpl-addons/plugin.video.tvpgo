@@ -39,7 +39,7 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
 
-from six.moves import urllib_parse
+from urllib import parse
 import xbmcgui
 import xbmcplugin
 import xbmcvfs
@@ -456,8 +456,8 @@ class Main(SimplePlugin):
 
     @staticmethod
     def adjust_timeshift_args(input_url, begin_time=None, keep_begin_time=True):
-        input_url_parsed = urllib_parse.urlparse(input_url)
-        input_params = dict(urllib_parse.parse_qsl(input_url_parsed.query))
+        input_url_parsed = parse.urlparse(input_url)
+        input_params = dict(parse.parse_qsl(input_url_parsed.query))
 
         if not keep_begin_time:
             del input_params['begin']
@@ -468,9 +468,9 @@ class Main(SimplePlugin):
         input_params['end'] = ''
 
         input_url_list = list(input_url_parsed)
-        input_url_list[4] = urllib_parse.urlencode(input_params)
+        input_url_list[4] = parse.urlencode(input_params)
 
-        return urllib_parse.urlunparse(input_url_list)
+        return parse.urlunparse(input_url_list)
 
     def gen_begin_time_from_timedelta(self, delta_min):
         return f'{datetime.utcnow() - timedelta(minutes=delta_min):%Y%m%dT%H%M%S}'
