@@ -24,7 +24,7 @@ Aby korzystać ze wtyczki i mieć przy tym automatyczne aktualizacje, zachęcamy
 
     - instalacja z pliku zip, wskaż plik zip z wcześniej dodanego repozytorium
 
-3. Przejdź do instalacji z repozytorium, wybierz nasze repozytorium - *KPL Addons Core Repository* - po czym zainstaluj wtyczkę **Vectra**
+3. Przejdź do instalacji z repozytorium, wybierz nasze repozytorium - *KPL Addons Core Repository* - po czym zainstaluj wtyczkę **TVP GO**
 
 
 
