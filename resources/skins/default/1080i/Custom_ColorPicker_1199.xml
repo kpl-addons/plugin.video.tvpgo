@@ -74,7 +74,7 @@
                                 <onfocus>SetProperty(ColourValue,$INFO[ListItem.Label])</onfocus>
                             </control>
                         </focusedlayout>
-                        <content>plugin://plugin.video.tvpgo?colorpicker=tiles</content>
+												<content>plugin://plugin.video.tvpgo/colorpicker/tiles</content>
                     </control>
                 </control>
                 <!-- Selection Box -->

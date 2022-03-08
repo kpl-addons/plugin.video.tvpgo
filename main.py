@@ -39,7 +39,6 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
 
-from urllib import parse
 import xbmcgui
 import xbmcplugin
 import xbmcvfs
@@ -47,13 +46,13 @@ import re
 import json
 from datetime import datetime, timedelta
 from collections import namedtuple
+from urllib import parse as urllib_parse
 
-from resources.lib.color_picker import ColorPicker, TilesGen
-from libka import SimplePlugin, call, L, PathArg
+from resources.lib.colorpicker import ColorPicker
+from libka import SimplePlugin, call, L, PathArg, search
 from libka.logs import log
 from libka.format import safefmt
-from libka.utils import adict
-# imports for libka only
+# imports for libka only (remove after move stuff to libka)
 from functools import wraps
 from xbmc import sleep as xbmc_sleep
 
@@ -61,6 +60,7 @@ from xbmc import sleep as xbmc_sleep
 # TODO:  move it to libka.utils
 def repeat_call(repeat, delay=0, catch=Exception, *, on_fail=None):
     """Repeat `repeat` times. Delay `delay` between retries."""
+
     def decorator(method):
         @wraps(method)
         def wrapper(*args, **kwargs):
@@ -90,15 +90,7 @@ EpgInfo.dt_start = property(lambda self: datetime.fromtimestamp(self.start / 100
 EpgInfo.dt_end = property(lambda self: datetime.fromtimestamp(self.end / 1000))
 EpgInfo.time_range = property(lambda self: f'{self.dt_start:%H:%M} - {self.dt_end:%H:%M}')
 
-
-colors = ['', 'skyblue', 'dodgerblue', 'lightgreen', 'indianred', 'thistle', 'goldenrod', 'sandybrown', 'button_focus']
-
-# XXX - not used
-# quantity = addon.getSetting('tvpgo_quantity')
-
-
-class SourceException(Exception):
-    pass
+sport_tvp_base_url = 'https://sport.tvp.pl/api/tvp-stream'
 
 
 class RepeatException(Exception):
@@ -108,8 +100,19 @@ class RepeatException(Exception):
 class Main(SimplePlugin):
 
     def __init__(self):
+        def stylize(name, defcolor='ffffffff'):
+            colname = f'tvpgo_{name}_color'
+            styles = [f'COLOR {self.settings.get(colname) or defcolor}']
+            if self.settings.get(f'tvpgo_{name}_style_bold'):
+                styles.append('B')
+            log.info(f'STYLE({name}: {styles}')
+            return styles
+
         super().__init__()
-        self.color: str = self.settings.get_string('tvpgo_color')
+        self.styles = {
+            'channel': stylize('channel', 'ffffffff'),
+            'time': stylize('time', '80ffffff'),
+        }
         if self.settings.tvpgo_format == 0:
             self.title_format: str = '{channel} {time} - {title}'
         else:
@@ -122,33 +125,21 @@ class Main(SimplePlugin):
         self.fanart = self.resources.base / 'fanart.png'
         now = datetime.now()
         self.tz_offset = now - datetime.utcfromtimestamp(now.timestamp())
+        self.colorpicker = ColorPicker(addon=self)
+        self.search_collected = list()
+
+    def style(self, text, name):
+        """Style `text` by `name` rules."""
+        return self.format_title(text, style=self.styles[name])
 
     def home(self):
         # default art
         art = {'thumb': self.thumb, 'poster': self.poster, 'banner': self.banner,
                'icon': self.icon, 'fanart': self.fanart}
         with self.directory() as kdir:
-            kdir.menu('Kanały na żywo', self.live,
-                      info={'title': 'Kanały na żywo', 'sorttitle': 'Kanały na żywo', 'plot': ''},
-                      art=art)
-            kdir.menu('Replay', self.replay,
-                      info={'title': 'Replay', 'sorttitle': 'Replay', 'plot': ''},
-                      art=art)
-
-    # def get_requests(self, url, headers=None, data=None, txt=False):
-    #     try:
-    #         if data is not None:
-    #             response = self.post(url, headers=headers, json=data)
-    #         else:
-    #             response = self.get(url, headers=headers)
-
-    #         if not txt:
-    #             return json.loads(response.text)
-    #         else:
-    #             return response.text
-    #     except Exception:
-    #         xbmcgui.Dialog().notification(L(30027, '[B]Error[/B]'), L(30028, 'Connection to the service has failed'), xbmcgui.NOTIFICATION_INFO, 6000, False)
-    #         raise SourceException('Error loading list')
+            kdir.menu('Kanały na żywo', self.live, art=art)
+            kdir.menu('Archiwum', self.replay, art=art)
+            kdir.menu('VOD', self.vod, art=art)
 
     # HACK, "@staticmethod" will be removed after move repeat_call to libka
     @staticmethod
@@ -228,7 +219,7 @@ class Main(SimplePlugin):
             ar_chan.append(ChannelInfo(code=ch_code, name=ch_name, img=ch_img, id=ch_id))
 
         if self.settings.tvpgo_sort == 1:
-            ar_chan = sorted(ar_chan, key=lambda x: x[1])
+            ar_chan = sorted(ar_chan, key=lambda x: x.name)
 
         return ar_chan
 
@@ -238,7 +229,7 @@ class Main(SimplePlugin):
 
         with self.directory() as kdir:
             for ch in channels:
-                channel = self.format_title(ch.name, style=[f'COLOR {self.color}', 'B'])
+                channel = self.style(ch.name, 'channel')
                 epg = epg_data.get(ch.code)
                 if epg:
                     if epg.start and epg.end:
@@ -246,7 +237,7 @@ class Main(SimplePlugin):
                         dt_end = datetime.fromtimestamp(int(epg.end) / 1000)
 
                         if epg.title:
-                            time_delta = f'[COLOR 80FFFFFF][B][{dt_start:%H:%M} - {dt_end:%H:%M}][/B][/COLOR]'
+                            time_delta = self.style(f'[{dt_start:%H:%M} - {dt_end:%H:%M}]', 'time')
                             title = self.title_format.format(channel=channel, title=epg.title, time=time_delta)
                         else:
                             title = channel
@@ -262,7 +253,7 @@ class Main(SimplePlugin):
                                     'year': epg.year, 'plotoutline': epg.desc,
                                     'plot': epg.desc_long, 'duration': epg.duration},
                               menu=[
-                                  (L('Program'), self.cmd.Container.Update(self.program, epg.code)),
+                                  (L(30039, 'Program'), self.cmd.Container.Update(self.program, epg.code)),
                               ])
                 else:
                     log.debug(f'Missing EPG for {ch}')
@@ -280,7 +271,8 @@ class Main(SimplePlugin):
         with self.directory() as kdir:
             now_msec = datetime.now().timestamp() * 1000
             for epg in self.get_epgs(all_day=True, tv_code=code):
-                title = f'[COLOR 80FFFFFF][B][{epg.time_range}][/B][/COLOR] – {epg.title}'
+                time = self.style(f'[{epg.time_range}]', epg.time_range)
+                title = f'{time} – {epg.title}'
                 if epg.start > now_msec:
                     kdir.item(title, self.nop)
                 else:
@@ -298,7 +290,7 @@ class Main(SimplePlugin):
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def play_channel(self, code, ch_id=None):
         streams = ''
-        url = 'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={code}'.format(code=code)
+        url = f'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={code}'
         response = self.jget(url)
         try:
             live = response['data']
@@ -309,14 +301,15 @@ class Main(SimplePlugin):
         except Exception:
             raise RepeatException() from None
 
-        url_stream, protocol, mime_type = self.get_stream_of_type(streams)
+        url_stream = self.get_stream_of_type(streams)['url']
+        protocol_type = self.get_stream_of_type(streams)['protocol']
+        stream_mime_type = self.get_stream_of_type(streams)['mime_type']
         url_stream = self.apply_timeshift(url_stream)
-        log.info('URL_STREAM=== ' + url_stream)
-        self.play(url_stream, protocol, mime_type)
+        self.play(url_stream, protocol_type, stream_mime_type)
 
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def replay_channels_array_gen(self):
-        url = "https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations"
+        url = f'https://tvpstream.tvp.pl/api/tvp-stream/program-tv/stations'
         response = self.jget(url)
         if 'data' not in response:
             raise RepeatException()
@@ -334,7 +327,7 @@ class Main(SimplePlugin):
             ar_chan.append(ChannelInfo(code=ch_code, name=ch_name, img=ch_img, id=ch_id))
 
         if self.settings.tvpgo_sort == 1:
-            ar_chan = sorted(ar_chan, key=lambda x: x[1])
+            ar_chan = sorted(ar_chan, key=lambda x: x.name)
 
         return ar_chan
 
@@ -381,9 +374,7 @@ class Main(SimplePlugin):
 
                 p_title = p['title']
                 p_desc = p['description']
-                p_time_delta = '[COLOR 80FFFFFF][B][{0} - {1}][/B][/COLOR]'.format(hm(p['date_start']),
-                                                                                   hm(p['date_end']))
-
+                p_time_delta = self.style(f'[{hm(p["date_start"])} - {hm(p["date_end"])}]', 'time')
                 p_logo = ''
                 program = p.get('program')
                 if program is not None:
@@ -400,7 +391,7 @@ class Main(SimplePlugin):
     def replay_programs_gen(self, ch_code, ch_img, date):
         with self.directory() as kdir:
             for p in self.replay_programs_array_gen(ch_code, date):
-                channel = self.format_title(p.name, style=[f'COLOR {self.color}', 'B'])
+                channel = self.style(p.name, 'channel')
                 title = self.title_format.format(channel=channel, title=p.title, time=p.time_delta)
                 art = {'thumb': p.img or ch_img, 'poster': p.img or ch_img, 'banner': self.banner,
                        'icon': self.icon, 'fanart': self.fanart}
@@ -412,7 +403,7 @@ class Main(SimplePlugin):
     def get_replay_program_streams(self, ch_code, prog_id, retry=0):
         retry += 1
 
-        url = f'https://sport.tvp.pl/api/tvp-stream/stream/data?station_code={ch_code}&record_id={prog_id}'
+        url = f'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={ch_code}&record_id={prog_id}'
 
         response = self.jget(url)
         if 'data' not in response:
@@ -423,6 +414,35 @@ class Main(SimplePlugin):
         streams = response['formats']
 
         return streams
+
+    def vod(self):
+        response = self.jget(f'{sport_tvp_base_url}/block/list?device=android')
+        with self.directory() as kdir:
+            for item in response['data']:
+                kdir.menu(item['title'], call(self.vod_category, item['_id']))
+            kdir.menu('SZUKAJ', self.search)
+
+    def vod_category(self, cid: PathArg[int]):
+        response = self.jget(f'{sport_tvp_base_url}/block/list?device=android')
+        for category in response['data']:
+            if category['_id'] == cid:
+                with self.directory() as kdir:
+                    for item in category['items']:
+                        kdir.play(item['title'],
+                                  call(self.vod_play, station_code=item["station_code"], record_id=item["record_id"]))
+                # found category, ignore rest
+                break
+
+    def vod_play(self, station_code, record_id):
+        url = f'{sport_tvp_base_url}/stream/data'
+        response = self.jget(url, params={'station_code': station_code, 'record_id': record_id, 'device': 'android'})
+        return self.sort_vod_streams(response)
+
+    def sort_vod_streams(self, url):
+        response = self.jget(url["data"]["stream_url"])
+        play_item_url = self.get_stream_of_type(response['formats'])['url']
+        protocol = self.get_stream_of_type(response['formats'])['protocol']
+        self.play(play_item_url, drm_protocol=protocol)
 
     def play(self, url_stream, drm_protocol, drm_mime_type=None):
         from inputstreamhelper import Helper  # pylint: disable=import-outside-toplevel
@@ -440,8 +460,10 @@ class Main(SimplePlugin):
 
     def play_programme(self, code, prog_id):
         streams = self.get_replay_program_streams(code, prog_id)
-        url_stream, protocol, mime_type = self.get_stream_of_type(streams)
-        self.play(url_stream=url_stream, drm_protocol=protocol, drm_mime_type=mime_type)
+        url_stream = self.get_stream_of_type(streams)['url']
+        protocol_type = self.get_stream_of_type(streams)['protocol']
+        stream_mime_type = self.get_stream_of_type(streams)['mime_type']
+        self.play(url_stream=url_stream, drm_protocol=protocol_type, drm_mime_type=stream_mime_type)
 
     def apply_timeshift(self, url_stream, keep_begin_time=True):
         if url_stream is not None:
@@ -454,10 +476,206 @@ class Main(SimplePlugin):
 
             return url_stream
 
+    # Searching ...
+    def get_search_results(self, query, index):
+        list_queries = [
+            {
+                'query': query,
+                'scope': 'bestresults',
+                'limit': 20,
+                'page': 1,
+                'device': 'android'
+            },
+            {
+                'query': query,
+                'scope': 'programtv',
+                'limit': 20,
+                'page': 1,
+                'device': 'android'
+            },
+            {
+                'query': query,
+                'scope': 'vodprogrammesandepisodes',
+                'limit': 20,
+                'page': 1,
+                'device': 'android'
+            },
+            {
+                'query': query,
+                'scope': 'vodepisodes',
+                'limit': 20,
+                'page': 1,
+                'device': 'android'
+            }
+        ]
+        if index < 4:
+            response = self.jget(f'{sport_tvp_base_url}/search?', params=list_queries[index])
+            if response['data']:
+                self.search_collected.append(response['data']['occurrenceitem'])
+                index += 1
+                return self.get_search_results(query, index)
+        else:
+            return self.list_occurrenceitems(self.search_collected)
+
+    def list_occurrenceitems(self, data):
+        filtered_data = {item['title']: item for results in data for item in results}
+        with self.directory() as kdir:
+            for item in filtered_data.values():
+                kdir.menu(item['title'], call(self.get_search_tabs, occurrenceid=item['id']))
+
+    def get_search_tabs(self, occurrenceid):
+        query = {
+            'id': occurrenceid,
+            'device': 'android'
+        }
+        response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence', params=query)
+        with self.directory() as kdir:
+            if response['data']:
+                for item in response['data']['tabs']:
+                    kdir.menu(self.style(item['title'], 'channel'),
+                              call(self.list_seasons, id=occurrenceid, endpoint_type=item['endpoint_type']))
+            else:
+                response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video', params=query)
+                for item in response['data']['tabs']:
+                    params = item.get('params')
+                    people_id = params.get('id')
+                    kdir.menu(self.style(item['title'], 'channel'),
+                              call(self.list_seasons, id=occurrenceid, people_id=people_id,
+                                   endpoint_type=item['endpoint_type']))
+
+    def list_seasons(self, id, endpoint_type=None, people_id=None, cat20=None, cat30=None):
+        if endpoint_type == 'SEASON_VIDEOS':
+            query = {
+                'id': id,
+                'device': 'android'
+            }
+            response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video', params=query)
+            self.list_search_items(response)
+
+        elif endpoint_type == 'OCCURRENCES':
+            query = {
+                'onlycatchup': 1,
+                'category[20][]': cat20,
+                'category[30][]': cat30,
+                'include_images': 1,
+                'page': 1,
+                'limit': 40,
+                'device': 'android'
+            }
+            response = self.jpost(f'{sport_tvp_base_url}/program-tv/occurrences', params=query)
+            self.list_search_items(response)
+
+        elif endpoint_type == 'PEOPLES':
+            query = {
+                'id': people_id,
+                'types[]': 30,
+                'page': 1,
+                'limit': 40,
+                'device': 'android'
+            }
+            response = self.jget(f'{sport_tvp_base_url}/program-tv/program/people', params=query)
+            with self.directory() as kdir:
+                for item in response['data']:
+                    kdir.menu(f'{self.style(item["name"], "channel")} [{item["description"]}]',
+                              call(self.call_people, person_id=item['id']))
+
+    def show_seasons(self, seasonid):
+        query = {
+            'id': seasonid,
+            'page': 1,
+            'limit': 20,
+            'device': 'android'
+        }
+        response = self.jpost(f'{sport_tvp_base_url}/season/videos', params=query)
+        with self.directory() as kdir:
+            for item in response['data']:
+                kdir.play(f'{self.style(item["title"], "channel")} – {item["subtitle"]}',
+                          call(self.play_search_result, playid=item['id']))
+
+    def call_people(self, person_id):
+        query = {
+            'personId': person_id,
+            'device': 'android'
+        }
+        response = self.jget(f'{sport_tvp_base_url}/search/people/tabs', params=query)
+        with self.directory() as kdir:
+            if response['data']:
+                for item in response['data']:
+                    kdir.menu(item['title'], call(self.person_search, person_id=item['params']['personId'],
+                                                  scope=item['params']['scope']))
+            else:
+                kdir.item('Brak informacji.', self.nop)
+
+    def person_search(self, person_id, scope):
+        query = {
+            'scope': scope,
+            'personId': person_id,
+            'page': 1,
+            'limit': 40,
+            'device': 'android'
+        }
+        response = self.jget(f'{sport_tvp_base_url}/search/people', params=query)
+        with self.directory() as kdir:
+            for item in response['data']:
+                kdir.menu(f'{self.style(item["title"], "channel")} – {item["subtitle"]}',
+                          call(self.person_search_result, program_id=item['id']))
+
+    def person_search_result(self, program_id):
+        query = {
+            'id': program_id,
+            'device': 'android'
+        }
+        response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence', params=query)
+        with self.directory() as kdir:
+            if response['data']:
+                for item in response['data']['tabs']:
+                    kdir.menu(self.style(item['title'], 'channel'),
+                              call(self.list_seasons, id=program_id, endpoint_type=item['endpoint_type']))
+
+    def list_search_items(self, data):
+        with self.directory() as kdir:
+            for results in data['data']['tabs']:
+                params = results.get('params', None)
+                if params is not None:
+                    season = params.get('seasons', None)
+                    if season is not None:
+                        for item in season:
+                            kdir.menu(f'{self.style(item["title"], "channel")}',
+                                      call(self.show_seasons, seasonid=item['id']))
+
+    def play_search_result(self, playid):
+        stream_data = self.jget(f'{sport_tvp_base_url}/stream/data?id={playid}&device=android')
+        stream_url = self.jget(stream_data['data']['stream_url'])
+        streams = stream_url['formats']
+        url_stream = self.get_stream_of_type(streams)['url']
+        protocol_type = self.get_stream_of_type(streams)['protocol']
+        stream_mime_type = self.get_stream_of_type(streams)['mime_type']
+
+        play_item = xbmcgui.ListItem(path=url_stream)
+        play_item.setMimeType(stream_mime_type)
+        play_item.setContentLookup(False)
+        play_item.setProperty('inputstreamaddon', 'inputstream.adaptive')
+        play_item.setProperty('inputstream.adaptive.manifest_type', protocol_type)
+        play_item.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
+        xbmcplugin.setResolvedUrl(self.handle, True, listitem=play_item)
+
+    @search.folder
+    def searching_tvpgo(self, query):
+        self.get_search_results(query=query, index=0)
+        # search_menu = [
+        #     {'category': 'Najlepsze wyniki', 'action': self.search_vod_bestresults},
+        #     {'category': '7 dniowa historia', 'action': self.search_vod_7days_archive},
+        #     {'category': 'Programy, filmy i seriale', 'action': self.search_vod_prog_mov_eps},
+        #     {'category': 'Odcinki', 'action': self.search_vod_episodes}
+        # ]
+        # with self.directory() as kdir:
+        #     for item in search_menu:
+        #         kdir.menu(item['category'], item['action'])
+
     @staticmethod
     def adjust_timeshift_args(input_url, begin_time=None, keep_begin_time=True):
-        input_url_parsed = parse.urlparse(input_url)
-        input_params = dict(parse.parse_qsl(input_url_parsed.query))
+        input_url_parsed = urllib_parse.urlparse(input_url)
+        input_params = dict(urllib_parse.parse_qsl(input_url_parsed.query))
 
         if not keep_begin_time:
             del input_params['begin']
@@ -468,33 +686,64 @@ class Main(SimplePlugin):
         input_params['end'] = ''
 
         input_url_list = list(input_url_parsed)
-        input_url_list[4] = parse.urlencode(input_params)
+        input_url_list[4] = urllib_parse.urlencode(input_params)
 
-        return parse.urlunparse(input_url_list)
+        return urllib_parse.urlunparse(input_url_list)
 
     def gen_begin_time_from_timedelta(self, delta_min):
         return f'{datetime.utcnow() - timedelta(minutes=delta_min):%Y%m%dT%H%M%S}'
 
     @staticmethod
     def get_stream_of_type(streams):
-        for s in streams:
-            if s['mimeType'] == 'application/dash+xml' and not ('mobile' in s['url']):
-                url_stream = s['url']
-                protocol_type = 'mpd'
-                stream_mime_type = 'application/xml+dash'
-                return url_stream, protocol_type, stream_mime_type
+        # for s in sorted_data:
+        #     if s['mimeType'] == 'application/dash+xml' and not ('mobile' in s['url']):
+        #         url_stream = s['url']
+        #         protocol_type = 'mpd'
+        #         stream_mime_type = 'application/xml+dash'
+        #         return url_stream, protocol_type, stream_mime_type
+        #
+        #     elif s['mimeType'] == 'application/x-mpegurl' and not ('mobile' in s['url']):
+        #         url_stream = s['url']
+        #         protocol_type = 'hls'
+        #         stream_mime_type = 'application/x-mpegurl'
+        #         return url_stream, protocol_type, stream_mime_type
+        #
+        #     elif s['mimeType'] == 'video/mp2t' and not ('mobile' in s['url']):
+        #         url_stream = s['url']
+        #         protocol_type = 'hls'
+        #         stream_mime_type = 'video/mp2t'
+        #         return url_stream, protocol_type, stream_mime_type
 
-            elif s['mimeType'] == 'application/x-mpegurl' and not ('mobile' in s['url']):
-                url_stream = s['url']
-                protocol_type = 'hls'
-                stream_mime_type = 'application/x-mpegurl'
-                return url_stream, protocol_type, stream_mime_type
+        sorted_data = sorted(streams, key=lambda d: list(str(d['totalBitrate'])), reverse=True)
+        url_stream = sorted_data[0]['url']
+        mime_type = sorted_data[0]['mimeType']
+        if sorted_data[0]['mimeType'] == 'application/dash+xml':
+            return {
+                'url': url_stream,
+                'mime_type': mime_type,
+                'protocol': 'mpd'
+            }
 
-            elif s['mimeType'] == 'video/mp2t' and not ('mobile' in s['url']):
-                url_stream = s['url']
-                protocol_type = 'hls'
-                stream_mime_type = 'video/mp2t'
-                return url_stream, protocol_type, stream_mime_type
+        elif sorted_data[0]['mimeType'] == 'application/x-mpegurl':
+            return {
+                'url': url_stream,
+                'mime_type': mime_type,
+                'protocol': 'hls'
+            }
+
+        elif sorted_data[0]['mimeType'] == 'video/mp2t':
+            return {
+                'url': url_stream,
+                'mime_type': mime_type,
+                'protocol': 'hls'
+            }
+
+        elif sorted_data[0]['mimeType'] == 'video/mp4':
+            return {
+                'url': url_stream,
+                'mime_type': mime_type,
+                'protocol': 'hls'
+            }
 
     def build_m3u(self):
         path_m3u = self.settings.tvpgo_path_m3u
@@ -522,10 +771,6 @@ class Main(SimplePlugin):
 
 if __name__ == '__main__':
     import sys
+
     log.info(f'============= {sys.argv}')
-    if sys.argv[1] == 'color_picker':
-        ColorPicker()
-    elif sys.argv[2] == '?colorpicker=tiles':
-        TilesGen()
-    else:
-        Main().run()
+    Main().run()
