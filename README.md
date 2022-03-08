@@ -34,4 +34,4 @@ Aby korzystać ze wtyczki i mieć przy tym automatyczne aktualizacje, zachęcamy
 
 
 
-Ten dodatek jest udostępniany na licencji GNU GENERAL PUBLIC LICENSE Version 3. 
+Ten dodatek jest udostępniany na licencji MIT. 
