@@ -52,31 +52,7 @@ from resources.lib.colorpicker import ColorPicker
 from libka import SimplePlugin, call, L, PathArg, search
 from libka.logs import log
 from libka.format import safefmt
-# imports for libka only (remove after move stuff to libka)
-from functools import wraps
-from xbmc import sleep as xbmc_sleep
-
-
-# TODO:  move it to libka.utils
-def repeat_call(repeat, delay=0, catch=Exception, *, on_fail=None):
-    """Repeat `repeat` times. Delay `delay` between retries."""
-
-    def decorator(method):
-        @wraps(method)
-        def wrapper(*args, **kwargs):
-            for n in range(repeat):
-                try:
-                    return method(*args, **kwargs)
-                except catch as exc:
-                    print(f'{method}(*{args}, **{kwargs}): failed n={n}: {exc}')
-                xbmc_sleep(int(1000 * delay))
-                # time.sleep(delay)
-            if on_fail is not None:
-                on_fail()
-
-        return wrapper
-
-    return decorator
+from libka.deco import repeat_call
 
 
 #: Channel general info
