@@ -54,7 +54,6 @@ from libka.logs import log
 from libka.format import safefmt
 from libka.deco import repeat_call
 
-
 #: Channel general info
 ChannelInfo = namedtuple('ChannelInfo', 'id code name title descr time_delta img',
                          defaults=(None, None, None, None))
@@ -81,7 +80,6 @@ class Main(SimplePlugin):
             styles = [f'COLOR {self.settings.get(colname) or defcolor}']
             if self.settings.get(f'tvpgo_{name}_style_bold'):
                 styles.append('B')
-            log.info(f'STYLE({name}: {styles}')
             return styles
 
         super().__init__()
@@ -232,7 +230,6 @@ class Main(SimplePlugin):
                                   (L(30039, 'Program'), self.cmd.Container.Update(self.program, epg.code)),
                               ])
                 else:
-                    log.debug(f'Missing EPG for {ch}')
                     title = channel
                     thumb = ch.img or self.thumb
                     art = ({'thumb': thumb, 'poster': self.poster, 'banner': self.banner,
@@ -508,8 +505,17 @@ class Main(SimplePlugin):
         with self.directory() as kdir:
             if response['data']:
                 for item in response['data']['tabs']:
-                    kdir.menu(self.style(item['title'], 'channel'),
-                              call(self.list_seasons, id=occurrenceid, endpoint_type=item['endpoint_type']))
+                    category = item.get('params').get('category')
+                    if category:
+                        cat20 = category.get('20')[0]
+                        cat30 = category.get('30')[0]
+                        if cat20 and cat30:
+                            kdir.menu(self.style(item['title'], 'channel'),
+                                      call(self.list_seasons, id=occurrenceid, endpoint_type=item['endpoint_type'],
+                                           cat20=cat20, cat30=cat30))
+                    else:
+                        kdir.menu(self.style(item['title'], 'channel'),
+                                  call(self.list_seasons, id=occurrenceid, endpoint_type=item['endpoint_type']))
             else:
                 response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video', params=query)
                 for item in response['data']['tabs']:
@@ -538,7 +544,7 @@ class Main(SimplePlugin):
                 'limit': 40,
                 'device': 'android'
             }
-            response = self.jpost(f'{sport_tvp_base_url}/program-tv/occurrences', params=query)
+            response = self.sess.post(f'{sport_tvp_base_url}/program-tv/occurrences', params=query).json()
             self.list_search_items(response)
 
         elif endpoint_type == 'PEOPLES':
@@ -610,14 +616,20 @@ class Main(SimplePlugin):
 
     def list_search_items(self, data):
         with self.directory() as kdir:
-            for results in data['data']['tabs']:
-                params = results.get('params', None)
-                if params is not None:
-                    season = params.get('seasons', None)
-                    if season is not None:
-                        for item in season:
+            retrieved_data = data.get('data')
+            if type(retrieved_data) is dict:
+                tabs = retrieved_data.get('tabs')
+            else:
+                tabs = retrieved_data[0].get('tabs')
+            if tabs:
+                for results in retrieved_data.get('tabs'):
+                    if results.get('params').get('seasons'):
+                        for item in results.get('params').get('seasons'):
                             kdir.menu(f'{self.style(item["title"], "channel")}',
                                       call(self.show_seasons, seasonid=item['id']))
+            else:
+                for item in retrieved_data:
+                    kdir.menu(f'{self.style(item["title"], "channel")}', call(self.show_seasons, seasonid=item['id']))
 
     def play_search_result(self, playid):
         stream_data = self.jget(f'{sport_tvp_base_url}/stream/data?id={playid}&device=android')
