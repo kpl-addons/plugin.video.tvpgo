@@ -58,7 +58,7 @@ msgstr "Sortuj według"
 
 msgctxt "#30013"
 msgid "Select channel style"
-msgstr "Wybierz schemat stylowania dla nazwy kanału"
+msgstr "Wybierz schemat stylu dla nazwy kanału"
 
 msgctxt "#30021"
 msgid "Create M3U playlist"
@@ -114,11 +114,11 @@ msgstr "Program"
 
 msgctxt "#30040"
 msgid "Select time style"
-msgstr "Wybierz schemat stylowania dla godziny"
+msgstr "Wybierz schemat stylu dla godziny"
 
 msgctxt "#30044"
 msgid "Select title style"
-msgstr "Wybierz schemat stylowania dla tytułu"
+msgstr "Wybierz schemat stylu dla tytułu"
 
 #~ msgctxt "#30041"
 #~ msgid "Bold channel name"
