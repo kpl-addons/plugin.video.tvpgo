@@ -506,6 +506,7 @@ class Main(SimplePlugin):
             if response['data']:
                 for item in response['data']['tabs']:
                     category = item.get('params').get('category')
+                    people_id = item.get('params').get('id')
                     if category:
                         cat20 = category.get('20')[0]
                         cat30 = category.get('30')[0]
@@ -513,6 +514,10 @@ class Main(SimplePlugin):
                             kdir.menu(self.style(item['title'], 'channel'),
                                       call(self.list_seasons, id=occurrenceid, endpoint_type=item['endpoint_type'],
                                            cat20=cat20, cat30=cat30))
+                    elif people_id:
+                        kdir.menu(self.style(item['title'], 'channel'),
+                                  call(self.list_seasons, id=occurrenceid, endpoint_type=item['endpoint_type'],
+                                       people_id=people_id))
                     else:
                         kdir.menu(self.style(item['title'], 'channel'),
                                   call(self.list_seasons, id=occurrenceid, endpoint_type=item['endpoint_type']))
@@ -633,32 +638,24 @@ class Main(SimplePlugin):
 
     def play_search_result(self, playid):
         stream_data = self.jget(f'{sport_tvp_base_url}/stream/data?id={playid}&device=android')
-        stream_url = self.jget(stream_data['data']['stream_url'])
-        streams = stream_url['formats']
-        url_stream = self.get_stream_of_type(streams)['url']
-        protocol_type = self.get_stream_of_type(streams)['protocol']
-        stream_mime_type = self.get_stream_of_type(streams)['mime_type']
+        if stream_data:
+            stream_url = self.jget(stream_data['data']['stream_url'])
+            streams = stream_url['formats']
+            url_stream = self.get_stream_of_type(streams)['url']
+            protocol_type = self.get_stream_of_type(streams)['protocol']
+            stream_mime_type = self.get_stream_of_type(streams)['mime_type']
 
-        play_item = xbmcgui.ListItem(path=url_stream)
-        play_item.setMimeType(stream_mime_type)
-        play_item.setContentLookup(False)
-        play_item.setProperty('inputstreamaddon', 'inputstream.adaptive')
-        play_item.setProperty('inputstream.adaptive.manifest_type', protocol_type)
-        play_item.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
-        xbmcplugin.setResolvedUrl(self.handle, True, listitem=play_item)
+            play_item = xbmcgui.ListItem(path=url_stream)
+            play_item.setMimeType(stream_mime_type)
+            play_item.setContentLookup(False)
+            play_item.setProperty('#KODIPROP:inputstream=inputstream.adaptive', 'inputstream.adaptive')
+            play_item.setProperty('inputstream.adaptive.manifest_type', protocol_type)
+            play_item.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
+            xbmcplugin.setResolvedUrl(self.handle, True, listitem=play_item)
 
     @search.folder
     def searching_tvpgo(self, query):
         self.get_search_results(query=query, index=0)
-        # search_menu = [
-        #     {'category': 'Najlepsze wyniki', 'action': self.search_vod_bestresults},
-        #     {'category': '7 dniowa historia', 'action': self.search_vod_7days_archive},
-        #     {'category': 'Programy, filmy i seriale', 'action': self.search_vod_prog_mov_eps},
-        #     {'category': 'Odcinki', 'action': self.search_vod_episodes}
-        # ]
-        # with self.directory() as kdir:
-        #     for item in search_menu:
-        #         kdir.menu(item['category'], item['action'])
 
     @staticmethod
     def adjust_timeshift_args(input_url, begin_time=None, keep_begin_time=True):
@@ -683,54 +680,41 @@ class Main(SimplePlugin):
 
     @staticmethod
     def get_stream_of_type(streams):
-        # for s in sorted_data:
-        #     if s['mimeType'] == 'application/dash+xml' and not ('mobile' in s['url']):
-        #         url_stream = s['url']
-        #         protocol_type = 'mpd'
-        #         stream_mime_type = 'application/xml+dash'
-        #         return url_stream, protocol_type, stream_mime_type
-        #
-        #     elif s['mimeType'] == 'application/x-mpegurl' and not ('mobile' in s['url']):
-        #         url_stream = s['url']
-        #         protocol_type = 'hls'
-        #         stream_mime_type = 'application/x-mpegurl'
-        #         return url_stream, protocol_type, stream_mime_type
-        #
-        #     elif s['mimeType'] == 'video/mp2t' and not ('mobile' in s['url']):
-        #         url_stream = s['url']
-        #         protocol_type = 'hls'
-        #         stream_mime_type = 'video/mp2t'
-        #         return url_stream, protocol_type, stream_mime_type
-
         sorted_data = sorted(streams, key=lambda d: list(str(d['totalBitrate'])), reverse=True)
         url_stream = sorted_data[0]['url']
         mime_type = sorted_data[0]['mimeType']
-        if sorted_data[0]['mimeType'] == 'application/dash+xml':
+        if mime_type == 'application/dash+xml':
             return {
                 'url': url_stream,
                 'mime_type': mime_type,
                 'protocol': 'mpd'
             }
 
-        elif sorted_data[0]['mimeType'] == 'application/x-mpegurl':
+        elif mime_type == 'application/x-mpegurl':
             return {
                 'url': url_stream,
                 'mime_type': mime_type,
                 'protocol': 'hls'
             }
 
-        elif sorted_data[0]['mimeType'] == 'video/mp2t':
+        elif mime_type == 'video/mp2t':
             return {
                 'url': url_stream,
                 'mime_type': mime_type,
                 'protocol': 'hls'
             }
 
-        elif sorted_data[0]['mimeType'] == 'video/mp4':
+        elif mime_type == 'video/mp4':
             return {
                 'url': url_stream,
                 'mime_type': mime_type,
                 'protocol': 'hls'
+            }
+        elif mime_type == 'application/vnd.ms-ss':
+            return {
+                'url': url_stream,
+                'mime_type': mime_type,
+                'protocol': 'ism'
             }
 
     def build_m3u(self):
