@@ -455,7 +455,7 @@ class Main(SimplePlugin):
                 'query': query,
             }
 
-        response = self.jget(f'{sport_tvp_base_url}/search/tabs?', params=p_query)
+        response = self.jget(f'{sport_tvp_base_url}/search/tabs?', params=p_query) ## search all tabs for params
         if response['data']:
             for params in response['data']:
                 response = self.jget(f'{sport_tvp_base_url}/search?', params=params['params'])
@@ -474,15 +474,17 @@ class Main(SimplePlugin):
 
         with self.directory() as kdir:
             for item in filtered_data.values():
-                kdir.menu(item['title'], call(self.get_search_tabs, occurrenceid=id_list))
+                kdir.menu(item['title'], call(self.get_search_tabs, occurrenceid=id_list)) ## send list instead of string
 
     def get_search_tabs(self, occurrenceid):
+
+        ## only because occurrenceid is stirng 
         import ast
         a_list = ast.literal_eval(occurrenceid)
         oid_list = list(dict.fromkeys(a_list))
 
         try:
-            for oid in oid_list:
+            for oid in oid_list: # find first working url
                 query = {
                     'id': oid,
                     'device': 'android'
