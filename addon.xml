@@ -1,12 +1,9 @@
-<?xml version="1.2.1" encoding="UTF-8" standalone="yes" ?>
-<addon id="plugin.video.tvpgo" name="TVP GO" version="1.3.0" provider-name="Kodi-PL">
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<addon id="plugin.video.tvpgo" name="TVP GO" version="1.3.4" provider-name="KPL Addons Team">
 <requires>
+	<import addon="xbmc.python" version="3.0.0"/>
 	<import addon="script.module.libka"/>
-	<import addon="script.module.requests" />
 	<import addon="script.module.inputstreamhelper" />
-	<import addon="service.cronxbmc" optional="true"/>
-	<import addon="script.module.future"/>
-	<import addon="script.module.six"/>
 </requires>
 <extension point="xbmc.python.pluginsource" library="main.py">
 	<provides>video</provides>
@@ -20,13 +17,13 @@
     <disclaimer lang="pl">Wtyczka nie jest oficjalna koncesjonowanego dostawy, oraz nie jest przez niego zatwierdzona i wspierana. Wszelkie użyte znaki handlowe należą do firm i organizacji podmiotu koncesjonowanego.</disclaimer>
 	<language>en, pl</language>
 	<platform>all</platform>
-	<license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
-	<website>https://github.com/kodi-pl-addons/plugin.video.tvpgo</website>
+	<license>MIT</license>
+	<website>https://github.com/kpl-addons/plugin.video.tvpgo</website>
 	<assets>
 		<icon>icon.png</icon>
 		<fanart>fanart.jpg</fanart>
 	</assets>
-	<news>v1.3.0[CR]Initial release using Libka library</news>
+	<news>v1.3.4[CR]Fixed EPG[CR]Added Color Picker[CR]Fixed replays[CR]Total refactor[CR]Fixed play and timeshift function[CR]Added program to context menu</news>
 	<reuselanguageinvoker>true</reuselanguageinvoker>
 </extension>
 </addon>
