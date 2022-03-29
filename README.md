@@ -2,10 +2,11 @@
 
 
 
-To jest dodatek do Kodi, który umożliwia strumieniowe przesyłanie zawartości z TVP GO w Kodi.
+Wtyczka do Kodi, umożliwiająca strumieniowe przesyłanie zawartości z TVP GO.
 
-
-
+### Wymagania
+- **Kodi 19** lub nowsze
+- System z python-em **3.7** lub nowszym
 
 
 ### Instalacja
