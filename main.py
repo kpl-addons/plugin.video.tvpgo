@@ -100,7 +100,6 @@ class Main(SimplePlugin):
         now = datetime.now()
         self.tz_offset = now - datetime.utcfromtimestamp(now.timestamp())
         self.colorpicker = ColorPicker(addon=self)
-        self.search_collected = list()
 
     def style(self, text, name):
         """Style `text` by `name` rules."""
@@ -450,50 +449,21 @@ class Main(SimplePlugin):
             return url_stream
 
     # Searching ...
-    def get_search_results(self, query, index):
-        list_queries = [
-            {
-                'query': query,
-                'scope': 'bestresults',
-                'limit': 20,
-                'page': 1,
-                'device': 'android'
-            },
-            {
-                'query': query,
-                'scope': 'programtv',
-                'limit': 20,
-                'page': 1,
-                'device': 'android'
-            },
-            {
+    def get_search_results(self, query):
+        params = {
                 'query': query,
                 'scope': 'vodprogrammesandepisodes',
-                'limit': 20,
-                'page': 1,
-                'device': 'android'
-            },
-            {
-                'query': query,
-                'scope': 'vodepisodes',
-                'limit': 20,
+                'limit': 40,
                 'page': 1,
                 'device': 'android'
             }
-        ]
-        if index < 4:
-            response = self.jget(f'{sport_tvp_base_url}/search?', params=list_queries[index])
-            if response['data']:
-                self.search_collected.append(response['data']['occurrenceitem'])
-                index += 1
-                return self.get_search_results(query, index)
-        else:
-            return self.list_occurrenceitems(self.search_collected)
+        response = self.jget(f'{sport_tvp_base_url}/search?', params=params)
+        if response['data']['occurrenceitem']:
+            return self.list_occurrenceitems(response['data']['occurrenceitem'])
 
     def list_occurrenceitems(self, data):
-        filtered_data = {item['title']: item for results in data for item in results}
         with self.directory() as kdir:
-            for item in filtered_data.values():
+            for item in data:
                 kdir.menu(item['title'], call(self.get_search_tabs, occurrenceid=item['id']))
 
     def get_search_tabs(self, occurrenceid):
@@ -523,7 +493,22 @@ class Main(SimplePlugin):
                                   call(self.list_seasons, id=occurrenceid, endpoint_type=item['endpoint_type']))
             else:
                 response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video', params=query)
-                for item in response['data']['tabs']:
+                data = response.get('data')
+                title = data['program']['title']
+                plot = data['description']
+                thumb = data['program']['image']['url']
+                thumb_url = thumb.replace('{width}', str(data['program']['image']['width'])).replace(
+                    '{height}', str(data['program']['image']['height'])
+                )
+                info = {
+                    'title': title,
+                    'plot': plot
+                }
+                art = {
+                    'thumb': thumb_url
+                }
+                kdir.play(title, call(self.play_search_result, occurrenceid), info=info, art=art)
+                for item in data['tabs']:
                     params = item.get('params')
                     people_id = params.get('id')
                     kdir.menu(self.style(item['title'], 'channel'),
@@ -655,7 +640,7 @@ class Main(SimplePlugin):
 
     @search.folder
     def searching_tvpgo(self, query):
-        self.get_search_results(query=query, index=0)
+        self.get_search_results(query=query)
 
     @staticmethod
     def adjust_timeshift_args(input_url, begin_time=None, keep_begin_time=True):
