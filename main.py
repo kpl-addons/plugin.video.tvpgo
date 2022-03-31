@@ -494,20 +494,25 @@ class Main(SimplePlugin):
             else:
                 response = self.jget(f'{sport_tvp_base_url}/program-tv/occurrence-video', params=query)
                 data = response.get('data')
-                title = data['program']['title']
-                plot = data['description']
-                thumb = data['program']['image']['url']
-                thumb_url = thumb.replace('{width}', str(data['program']['image']['width'])).replace(
-                    '{height}', str(data['program']['image']['height'])
-                )
-                info = {
-                    'title': title,
-                    'plot': plot
-                }
-                art = {
-                    'thumb': thumb_url
-                }
-                kdir.play(title, call(self.play_search_result, occurrenceid), info=info, art=art)
+                if data is not None:
+                    if data.get('program') is not None:
+                        title = data['program']['title'] if data['program']['title'] is not None else 'Brak tytułu dla pozycji'
+                        plot = data['description']
+                        thumb = data['program']['image']['url'] if data['program'].get('image') is not None else ''
+                        if thumb != '':
+                            thumb_url = thumb.replace('{width}', str(data['program']['image']['width'])).replace(
+                                '{height}', str(data['program']['image']['height'])
+                            )
+                            art = {
+                                'thumb': thumb_url
+                            }
+                        else:
+                            art = {}
+                        info = {
+                            'title': title,
+                            'plot': plot
+                        }
+                        kdir.play(title, call(self.play_search_result, occurrenceid), info=info, art=art)
                 for item in data['tabs']:
                     params = item.get('params')
                     people_id = params.get('id')
