@@ -151,27 +151,29 @@ class Main(SimplePlugin):
             #     with open('/tmp/epg1.json', 'w') as f:
             #         json.dump(data, f)
             if tv_code is None or tv_code == data.get('station', {}).get('code'):
-                for e in data['items']:
-                    start = e.get('date_start')
-                    end = e.get('date_end')
-                    now_msec = datetime.now().timestamp() * 1000
-                    if all_day or start <= now_msec <= end:
-                        ch_id = e.get('_id')
-                        ch_code = e.get('station_code')
-                        p_live = 'Live' if e.get('live') else ''
-                        prog = e.get('program')
-                        if prog is not None:
-                            imgs = prog.get('akpa_images')
-                            if imgs is not None:
-                                for img in imgs:
-                                    img_id = img['fileName'].replace('.jpg', '')
-                                    p_img = f'https://s2.tvp.pl/images-akpa/0/0/0/uid_' \
-                                            f'{img_id}_width_1280_play_0_pos_0_gs_0_height_720.jpg '
-                            else:
-                                p_img = ''
-                            epg_data.append(EpgInfo(ch_id, ch_code, p_live, start, end, e.get('duration'),
-                                                    prog['title'], prog['year'], prog['land'], prog['description'],
-                                                    prog['description_long'], p_img))
+                itemz = data.get('items')
+                if itemz:
+                    for e in itemz:
+                        start = e.get('date_start')
+                        end = e.get('date_end')
+                        now_msec = datetime.now().timestamp() * 1000
+                        if all_day or start <= now_msec <= end:
+                            ch_id = e.get('_id')
+                            ch_code = e.get('station_code')
+                            p_live = 'Live' if e.get('live') else ''
+                            prog = e.get('program')
+                            if prog is not None:
+                                imgs = prog.get('akpa_images')
+                                if imgs is not None:
+                                    for img in imgs:
+                                        img_id = img['fileName'].replace('.jpg', '')
+                                        p_img = f'https://s2.tvp.pl/images-akpa/0/0/0/uid_' \
+                                                f'{img_id}_width_1280_play_0_pos_0_gs_0_height_720.jpg '
+                                else:
+                                    p_img = ''
+                                epg_data.append(EpgInfo(ch_id, ch_code, p_live, start, end, e.get('duration'),
+                                                        prog['title'], prog['year'], prog['land'], prog['description'],
+                                                        prog['description_long'], p_img))
 
         return epg_data
 

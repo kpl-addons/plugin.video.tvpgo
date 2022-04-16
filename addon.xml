@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-<addon id="plugin.video.tvpgo" name="TVP GO" version="1.3.4" provider-name="KPL Addons Team">
+<addon id="plugin.video.tvpgo" name="TVP GO" version="1.3.5" provider-name="KPL Addons Team">
 <requires>
 	<import addon="xbmc.python" version="3.0.0"/>
 	<import addon="script.module.libka"/>
@@ -23,7 +23,7 @@
 		<icon>icon.png</icon>
 		<fanart>fanart.jpg</fanart>
 	</assets>
-	<news>v1.3.4[CR]Fixed EPG[CR]Added Color Picker[CR]Fixed replays[CR]Total refactor[CR]Fixed play and timeshift function[CR]Added program to context menu</news>
+	<news>v1.3.5[CR]Fixed EPG[CR]v1.3.4[CR]Fixed EPG[CR]Added Color Picker[CR]Fixed replays[CR]Total refactor[CR]Fixed play and timeshift function[CR]Added program to context menu</news>
 	<reuselanguageinvoker>true</reuselanguageinvoker>
 </extension>
 </addon>
