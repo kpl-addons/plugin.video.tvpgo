@@ -423,20 +423,31 @@ class Main(SimplePlugin):
         play_item_url = self.get_stream_of_type(response['formats'])
         stream_url = play_item_url['url']
         protocol = play_item_url['protocol']
-        self.play(play_item_url, drm_protocol=protocol)
+        mime_type = play_item_url['mime_type']
 
-    def play(self, url_stream, drm_protocol, drm_mime_type=None):
+        self.play(stream_url, protocol, mime_type, vod=True)
+
+    def play(self, url_stream, drm_protocol, drm_mime_type=None, vod=False):
         from inputstreamhelper import Helper  # pylint: disable=import-outside-toplevel
 
-        is_helper = Helper(drm_protocol)
-        if is_helper.check_inputstream():
-            play_item = xbmcgui.ListItem(path=url_stream)
-            if drm_mime_type is not None:
-                play_item.setMimeType(drm_mime_type)
-            play_item.setContentLookup(False)
-            play_item.setProperty('inputstream', is_helper.inputstream_addon)
-            play_item.setProperty("IsPlayable", "true")
-            play_item.setProperty('inputstream.adaptive.manifest_type', drm_protocol)
+        if drm_protocol:
+            is_helper = Helper(drm_protocol)
+            if is_helper.check_inputstream():
+                play_item = xbmcgui.ListItem(path=url_stream)
+                if drm_mime_type is not None:
+                    play_item.setMimeType(drm_mime_type)
+                play_item.setContentLookup(False)
+                play_item.setProperty('inputstream', is_helper.inputstream_addon)
+                play_item.setProperty("IsPlayable", "true")
+                play_item.setProperty('inputstream.adaptive.manifest_type', drm_protocol)
+                play_item.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
+                if vod:
+                    play_item.setProperty('inputstream.adaptive.play_timeshift_buffer', 'true')
+
+                xbmcplugin.setResolvedUrl(handle=self.handle, succeeded=True, listitem=play_item)
+
+        else:
+            play_item = xbmcgui.ListItem(path=url_stream) 
             xbmcplugin.setResolvedUrl(handle=self.handle, succeeded=True, listitem=play_item)
 
     def play_programme(self, code, prog_id):
@@ -629,18 +640,20 @@ class Main(SimplePlugin):
         stream_data = self.jget(f'{sport_tvp_base_url}/stream/data?id={playid}&device=android')
         stream_url = self.jget(stream_data['data']['stream_url'])
         streams = stream_url['formats']
-        stream_type = self.get_stream_of_type(streams)
-        url_stream = stream_type['url']
-        protocol_type = stream_type['protocol']
-        stream_mime_type = stream_type['mime_type']
 
-        play_item = xbmcgui.ListItem(path=url_stream)
-        play_item.setMimeType(stream_mime_type)
-        play_item.setContentLookup(False)
-        play_item.setProperty('inputstreamaddon', 'inputstream.adaptive')
-        play_item.setProperty('inputstream.adaptive.manifest_type', protocol_type)
-        play_item.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
-        xbmcplugin.setResolvedUrl(self.handle, True, listitem=play_item)
+        print('TEST11111')
+        print(streams)
+
+
+        play_item_url = self.get_stream_of_type(streams)
+
+        print(play_item_url)
+
+        url_stream = play_item_url['url']
+        protocol = play_item_url['protocol']
+        mime_type = play_item_url['mime_type']
+
+        self.play(url_stream, protocol, mime_type, vod=True)
 
     @search.folder
     def searching_tvpgo(self, query):
@@ -678,21 +691,21 @@ class Main(SimplePlugin):
 
     @staticmethod
     def get_stream_of_type(streams):
-        mime_types = ['application/vnd.ms-ss', 'video/mp4','video/mp2t', 'application/dash+xml', 'application/x-mpegurl']
+        mime_types = ['application/vnd.ms-ss', 'video/mp4', 'video/mp2t', 'application/dash+xml', 'application/x-mpegurl']
 
         for s in streams:
             for r in range(len(mime_types)):
                 if s['mimeType'] == mime_types[r]:
                     s['priority'] = r
 
-        sorted_data = sorted(streams, key=lambda d: (-int(d['totalBitrate']), (d['priority'])), reverse=True)
+        sorted_data = sorted(streams, key=lambda d: ((d['priority']), -int(d['totalBitrate'])), reverse=True)
 
         for s in sorted_data:
             if 'material_niedostepny' not in s['url']:
                 if (s['mimeType'] == 'application/dash+xml'):
                     return {
                         'url': s['url'],
-                        'mime_type': 'application/xml+dash',
+                        'mime_type': 'application/dash+xml',
                         'protocol': 'mpd'
                     }
 
@@ -707,14 +720,14 @@ class Main(SimplePlugin):
                     return {
                         'url': s['url'],
                         'mime_type': 'application/x-mpegURL',
-                        'protocol': 'hls'
+                        'protocol': ''
                     }
 
                 elif (s['mimeType'] == 'video/mp4'):
                     return {
                         'url': s['url'],
-                        'mime_type': 'application/x-mpegURL',
-                        'protocol': 'hls'
+                        'mime_type': 'video/mp4',
+                        'protocol': ''
                     }
 
                 elif (s['mimeType'] == 'application/vnd.ms-ss'):
