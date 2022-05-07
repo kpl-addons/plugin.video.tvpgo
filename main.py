@@ -641,14 +641,7 @@ class Main(SimplePlugin):
         stream_url = self.jget(stream_data['data']['stream_url'])
         streams = stream_url['formats']
 
-        print('TEST11111')
-        print(streams)
-
-
         play_item_url = self.get_stream_of_type(streams)
-
-        print(play_item_url)
-
         url_stream = play_item_url['url']
         protocol = play_item_url['protocol']
         mime_type = play_item_url['mime_type']
