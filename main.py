@@ -285,6 +285,12 @@ class Main(SimplePlugin):
         stream_mime_type = stream_type['mime_type']
 
         url_stream = self.apply_timeshift(url_stream)
+        if 'index.mpd' in url_stream:
+            now = datetime.now() + timedelta(hours=1)
+            end = now.strftime('%Y%m%dT%H%M%S')
+
+            url_stream = url_stream.replace('&end=', '&end=' + end)
+
         self.play(url_stream, protocol_type, stream_mime_type)
 
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
@@ -440,7 +446,6 @@ class Main(SimplePlugin):
                 play_item.setProperty('inputstream', is_helper.inputstream_addon)
                 play_item.setProperty("IsPlayable", "true")
                 play_item.setProperty('inputstream.adaptive.manifest_type', drm_protocol)
-                play_item.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
                 if vod:
                     play_item.setProperty('inputstream.adaptive.play_timeshift_buffer', 'true')
 
@@ -691,14 +696,14 @@ class Main(SimplePlugin):
                 if s['mimeType'] == mime_types[r]:
                     s['priority'] = r
 
-        sorted_data = sorted(streams, key=lambda d: ((d['priority']), -int(d['totalBitrate'])), reverse=True)
+        sorted_data = sorted(streams, key=lambda d: (-int(d['totalBitrate']), (d['priority'])), reverse=True)
 
         for s in sorted_data:
             if 'material_niedostepny' not in s['url']:
                 if (s['mimeType'] == 'application/dash+xml'):
                     return {
                         'url': s['url'],
-                        'mime_type': 'application/dash+xml',
+                        'mime_type': 'application/xml+dash',
                         'protocol': 'mpd'
                     }
 
@@ -713,14 +718,14 @@ class Main(SimplePlugin):
                     return {
                         'url': s['url'],
                         'mime_type': 'application/x-mpegURL',
-                        'protocol': ''
+                        'protocol': 'hls'
                     }
 
                 elif (s['mimeType'] == 'video/mp4'):
                     return {
                         'url': s['url'],
-                        'mime_type': 'video/mp4',
-                        'protocol': ''
+                        'mime_type': 'application/x-mpegURL',
+                        'protocol': 'hls'
                     }
 
                 elif (s['mimeType'] == 'application/vnd.ms-ss'):
@@ -729,6 +734,7 @@ class Main(SimplePlugin):
                         'mime_type': 'application/vnd.ms-ss',
                         'protocol': 'ism'
                     }
+
 
     def build_m3u(self):
         path_m3u = self.settings.tvpgo_path_m3u
