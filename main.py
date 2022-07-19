@@ -268,14 +268,19 @@ class Main(SimplePlugin):
     @repeat_call(5, 1, RepeatException, on_fail=_fail_notification)
     def play_channel(self, code, ch_id=None):
         streams = ''
+        duration = 0
+
         url = f'https://tvpstream.tvp.pl/api/tvp-stream/stream/data?station_code={code}'
         response = self.jget(url)
+
         try:
             live = response.get('data')
             if live:
                 urls = live['stream_url']
                 response = self.jget(urls)
                 streams = response['formats']
+                duration = response['duration']
+
         except Exception:
             raise RepeatException() from None
 
@@ -283,13 +288,18 @@ class Main(SimplePlugin):
         url_stream = stream_type['url']
         protocol_type = stream_type['protocol']
         stream_mime_type = stream_type['mime_type']
-
         url_stream = self.apply_timeshift(url_stream)
-        if 'index.mpd' in url_stream:
-            now = datetime.now() + timedelta(hours=1)
-            end = now.strftime('%Y%m%dT%H%M%S')
 
-            url_stream = url_stream.replace('&end=', '&end=' + end)
+        now = datetime.now() + timedelta(seconds=int(duration))
+        end = now.strftime('%Y%m%dT%H%M%S')
+
+        if '?begin' in url_stream:
+            end_tag = '&end=' + end
+            r_url_stream = url_stream.replace('&end=', end_tag) + '&'
+        else:
+            r_url_stream = url_stream.replace('?end=', '') + '?'
+
+        url_stream = r_url_stream + 'live=true&timeshift=true'
 
         self.play(url_stream, protocol_type, stream_mime_type)
 
@@ -444,10 +454,14 @@ class Main(SimplePlugin):
                     play_item.setMimeType(drm_mime_type)
                 play_item.setContentLookup(False)
                 play_item.setProperty('inputstream', is_helper.inputstream_addon)
-                play_item.setProperty("IsPlayable", "true")
+                play_item.setProperty('IsPlayable', 'true')
+                play_item.setProperty('inputstream.adaptive.stream_selection_type', 'fixed-res')
                 play_item.setProperty('inputstream.adaptive.manifest_type', drm_protocol)
+                play_item.setProperty('inputstream.adaptive.manifest_update_parameter', 'full')
                 if vod:
                     play_item.setProperty('inputstream.adaptive.play_timeshift_buffer', 'true')
+                else:
+                    play_item.setProperty('inputstream.adaptive.play_timeshift_buffer', 'false')
 
                 xbmcplugin.setResolvedUrl(handle=self.handle, succeeded=True, listitem=play_item)
 
@@ -461,7 +475,7 @@ class Main(SimplePlugin):
         url_stream = stream_type['url']
         protocol_type = stream_type['protocol']
         stream_mime_type = stream_type['mime_type']
-        self.play(url_stream=url_stream, drm_protocol=protocol_type, drm_mime_type=stream_mime_type)
+        self.play(url_stream=url_stream, drm_protocol=protocol_type, drm_mime_type=stream_mime_type, vod=True)
 
     def apply_timeshift(self, url_stream, keep_begin_time=True):
         if url_stream is not None:
