@@ -1,3 +1,5 @@
+# TA WERSJA WTYCZKI NIE BĘDZIE AKTUALIZOWANA. NOWĄ WERSJĘ ZNAJDZIESZ TUTAJ: https://github.com/kpl-addons/plugin.video.kpl.tvp
+
 # TVP GO
 
 
